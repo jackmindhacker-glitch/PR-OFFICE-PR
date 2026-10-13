@@ -1,0 +1,8 @@
+{
+  "name": "Remix PR ACADEMY",
+  "description": "Comprehensive academy management system for PR ACADEMY with course packages, student admissions, fee payments, WhatsApp reminders, and 50% teacher salary tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
