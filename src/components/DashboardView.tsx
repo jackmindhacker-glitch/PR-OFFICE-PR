@@ -378,8 +378,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className="font-bold text-slate-900 text-xs sm:text-sm">
                           {summary.teacher.name}
                         </div>
-                        <div className="text-[11px] text-slate-500">
-                          {summary.teacher.specialty}
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                          <span>{summary.teacher.specialty}</span>
+                          {summary.teacher.phone && (
+                            <span className="font-mono text-purple-700 font-medium">
+                              • {summary.teacher.phone}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

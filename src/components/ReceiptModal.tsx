@@ -144,6 +144,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = (props) => {
                     <span className="font-semibold text-slate-700">Course / Package:</span>
                     <span className="font-bold text-slate-900">{props.payment.courseTitle}</span>
                   </div>
+                  {props.student?.teacherName && (
+                    <div className="flex justify-between items-center text-[11px] text-purple-900 bg-purple-50/70 p-1.5 rounded-lg border border-purple-100">
+                      <span className="font-semibold">Teacher (Instructor):</span>
+                      <span className="font-bold">
+                        {props.student.teacherName} {props.student.teacherPhone ? `(${props.student.teacherPhone})` : ''}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-[11px] text-slate-500">
                     <span>Payment Mode:</span>
                     <span className="font-semibold text-slate-700 uppercase">

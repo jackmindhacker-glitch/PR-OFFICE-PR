@@ -291,11 +291,14 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                       <div>
                         <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                           <span>{summary.teacher.name}</span>
-                          <span className="rounded-md bg-amber-100 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
-                            {summary.teacher.sharePercentage}%
+                          <span className="rounded-md bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-800">
+                            50% Share
                           </span>
                         </h3>
-                        <p className="text-xs text-slate-500">{summary.teacher.specialty}</p>
+                        <p className="text-xs text-purple-700 font-mono font-medium flex items-center gap-1 mt-0.5">
+                          <Phone className="h-3 w-3 text-purple-500" />
+                          <span>{summary.teacher.phone || 'Phone not set'}</span>
+                        </p>
                       </div>
                     </div>
 
@@ -374,11 +377,20 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                     {currentSummary.teacher.name.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-900">
-                      {currentSummary.teacher.name} — Salary Hisaab
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                      <span>{currentSummary.teacher.name}</span>
+                      <span className="rounded-md bg-purple-100 text-purple-800 px-2 py-0.5 text-xs font-bold">
+                        50% Auto Share
+                      </span>
                     </h2>
-                    <p className="text-xs text-slate-500">
-                      {currentSummary.teacher.specialty} • Phone: {currentSummary.teacher.phone}
+                    <p className="text-xs text-slate-600 flex items-center gap-2 mt-1">
+                      <span className="font-mono flex items-center gap-1 text-purple-700 font-bold">
+                        <Phone className="h-3.5 w-3.5" />
+                        <a href={`tel:${currentSummary.teacher.phone}`} className="hover:underline">
+                          {currentSummary.teacher.phone || 'Mobile not set'}
+                        </a>
+                      </span>
+                      <span>• {currentSummary.teacher.specialty}</span>
                     </p>
                   </div>
                 </div>
@@ -388,7 +400,7 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all"
                 >
                   <Wallet className="h-4 w-4" />
-                  <span>Salary Pay Karein ({formatCurrency(currentSummary.balancePayable)})</span>
+                  <span>Teacher Ko Pay Karein ({formatCurrency(currentSummary.balancePayable)})</span>
                 </button>
               </div>
 

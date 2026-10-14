@@ -1,21 +1,60 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PR ACADEMY - Student & Academy Management</title>
-    <meta name="description" content="PR ACADEMY Management Portal: Courses, Admissions, Fee Payments, WhatsApp Reminders, and Teacher Salary Share." />
-    <meta property="og:title" content="PR ACADEMY - Student & Academy Management" />
-    <meta property="og:description" content="PR ACADEMY Management Portal: Courses, Admissions, Fee Payments, WhatsApp Reminders, and Teacher Salary Share." />
+    <title>PR ACADEMY – Dance, Meditation, Acting & Performing Arts</title>
+    <meta name="description" content="Official website & management portal for PR ACADEMY by Magician Pradeep Rajput. Professional courses in Dance, Meditation, Camera Acting, and Acoustic Guitar with stage training." />
+    <meta name="keywords" content="PR ACADEMY, Dance Academy, Meditation Classes, Acting School, Guitar Lessons, Magician Pradeep Rajput, Performing Arts, Student Admissions" />
+    <meta name="theme-color" content="#090d16" />
+    
+    <!-- OpenGraph Social Cards -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PR ACADEMY" />
+    <meta property="og:title" content="PR ACADEMY – Dance, Meditation, Acting & Performing Arts" />
+    <meta property="og:description" content="Official website & management portal for PR ACADEMY by Magician Pradeep Rajput. Explore courses, apply for online admission, and learn from dedicated instructors." />
+    
+    <!-- Twitter / X Cards -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PR ACADEMY – Dance, Meditation, Acting & Performing Arts" />
+    <meta name="twitter:description" content="Official website & management portal for PR ACADEMY by Magician Pradeep Rajput. Explore courses, apply for online admission, and learn from dedicated instructors." />
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Schema.org EducationalOrganization & WebApplication JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "EducationalOrganization",
+          "name": "PR ACADEMY",
+          "description": "Excellence in Dance, Meditation, Acting & Performing Arts by Magician Pradeep Rajput",
+          "founder": {
+            "@type": "Person",
+            "name": "Magician Pradeep Rajput"
+          },
+          "knowsAbout": ["Dance", "Meditation", "Acting", "Music & Guitar", "Stage Performance"],
+          "offers": {
+            "@type": "Offer",
+            "category": "Performing Arts Courses"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "name": "PR ACADEMY Portal & Website",
+          "applicationCategory": "EducationalApplication",
+          "operatingSystem": "All",
+          "description": "Comprehensive website and academy management portal for student admissions, fee tracking, WhatsApp reminders, and teacher salary distribution."
+        }
+      ]
+    }
+    </script>
   </head>
-  <body class="font-['Plus_Jakarta_Sans',sans-serif] bg-slate-50 text-slate-800 antialiased selection:bg-amber-500 selection:text-white">
+  <body class="font-['Plus_Jakarta_Sans',sans-serif] bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

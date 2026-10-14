@@ -59,8 +59,13 @@ export function calculateTeacherSalaries(
     const teacherCourses = courses.filter((c) => c.teacherId === teacher.id);
     const teacherCourseIds = new Set(teacherCourses.map((c) => c.id));
 
-    // Find all students enrolled in these courses
-    const teacherStudents = students.filter((s) => teacherCourseIds.has(s.courseId));
+    // Find all students directly assigned to this teacher OR enrolled in teacher's course
+    const teacherStudents = students.filter(
+      (s) =>
+        s.teacherId === teacher.id ||
+        (s.teacherName && s.teacherName.trim().toLowerCase() === teacher.name.trim().toLowerCase()) ||
+        teacherCourseIds.has(s.courseId)
+    );
 
     let totalCourseRevenue = 0;
     let totalCalculatedShare = 0;
@@ -69,19 +74,21 @@ export function calculateTeacherSalaries(
 
     teacherStudents.forEach((student) => {
       const course = courseMap.get(student.courseId);
-      const coursePrice = course ? course.price : student.totalFee;
-      // Revenue is considered from enrolled student's course fee
-      totalCourseRevenue += student.paidAmount;
+      const coursePrice = student.totalFee || (course ? course.price : 0);
+      
+      // If student has paid amount, calculate on collected fees; if 0 paid, calculate on enrolled admission fee
+      const effectiveAmount = student.paidAmount > 0 ? student.paidAmount : student.totalFee;
+      totalCourseRevenue += student.paidAmount > 0 ? student.paidAmount : student.totalFee;
 
-      // 50% share on course purchase/payment
+      // 50% share on course purchase / student admission
       const sharePct = (teacher.sharePercentage || 50) / 100;
-      const shareEarned = Math.round(student.paidAmount * sharePct);
+      const shareEarned = Math.round(effectiveAmount * sharePct);
       totalCalculatedShare += shareEarned;
 
       studentBreakdown.push({
         studentId: student.id,
         studentName: student.fullName,
-        courseTitle: course ? course.title : 'Course',
+        courseTitle: student.courseTitle || (course ? course.title : 'Course'),
         coursePrice,
         paidAmount: student.paidAmount,
         teacherShareEarned: shareEarned,

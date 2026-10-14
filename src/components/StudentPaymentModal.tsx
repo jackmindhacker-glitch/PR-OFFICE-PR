@@ -54,12 +54,12 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
     onAddPayment({
       studentId: student.id,
       studentName: student.fullName,
-      courseTitle: course ? course.title : 'Course',
+      courseTitle: student.courseTitle || (course ? course.title : 'Course'),
       amount,
       paymentMethod: method,
       date: new Date().toISOString(),
       remarks: remarks.trim() || 'Installment payment',
-      teacherId: teacher?.id || course?.teacherId || '',
+      teacherId: student.teacherId || teacher?.id || course?.teacherId || '',
       teacherShareAmount,
     });
 
@@ -129,13 +129,20 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
           </div>
 
           {/* Teacher Share notification */}
-          <div className="rounded-xl bg-amber-50 p-3 border border-amber-200/80 flex items-center justify-between text-[11px] text-amber-900">
+          <div className="rounded-xl bg-purple-50 p-3 border border-purple-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-purple-900">
             <div>
               <span className="font-bold">Assigned Teacher: </span>
-              <span>{teacher ? teacher.name : 'Academy Teacher'}</span>
+              <span className="font-semibold text-slate-900">
+                {student.teacherName || teacher?.name || 'Academy Teacher'}
+              </span>
+              {(student.teacherPhone || teacher?.phone) && (
+                <span className="font-mono text-purple-700 ml-1.5">
+                  ({student.teacherPhone || teacher?.phone})
+                </span>
+              )}
             </div>
             <span className="font-bold text-emerald-700">
-              50% Auto Share Credited: {formatCurrency(Math.round(student.paidAmount * 0.5))}
+              50% Auto Share: {formatCurrency(Math.round((student.paidAmount > 0 ? student.paidAmount : student.totalFee) * 0.5))}
             </span>
           </div>
 

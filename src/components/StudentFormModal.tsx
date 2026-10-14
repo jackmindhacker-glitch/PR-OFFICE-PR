@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { UserPlus, UserCheck, X, Sparkles, Percent } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, UserCheck, X, Sparkles, Percent, Phone, User, GraduationCap, Calendar, Clock, CreditCard } from 'lucide-react';
 import { Student, Course, PaymentMethod, Teacher } from '../types/academy';
 import { formatCurrency } from '../utils/calculations';
 
@@ -23,25 +23,50 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 }) => {
   const isEditing = !!initialStudent;
 
-  const defaultCourse = courses[0];
+  // Find preselected course & teacher if editing
+  const defaultCourse = courses.find((c) => c.id === initialStudent?.courseId) || courses[0];
+  const defaultTeacher = teachers.find(
+    (t) =>
+      t.id === initialStudent?.teacherId ||
+      t.name.trim().toLowerCase() === initialStudent?.teacherName?.trim().toLowerCase() ||
+      t.id === defaultCourse?.teacherId
+  ) || teachers[0];
+
+  // Student Basic Info
   const [fullName, setFullName] = useState(initialStudent?.fullName || '');
   const [parentName, setParentName] = useState(initialStudent?.parentName || '');
   const [phone, setPhone] = useState(initialStudent?.phone || '');
   const [whatsapp, setWhatsapp] = useState(initialStudent?.whatsapp || '');
   const [age, setAge] = useState<number>(initialStudent?.age || 14);
   const [gender, setGender] = useState<Student['gender']>(initialStudent?.gender || 'Male');
+
+  // Course Info
   const [courseId, setCourseId] = useState(initialStudent?.courseId || defaultCourse?.id || '');
+  const [customCourseTitle, setCustomCourseTitle] = useState(
+    initialStudent?.courseTitle || defaultCourse?.title || ''
+  );
   const [totalFee, setTotalFee] = useState<number>(
     initialStudent ? initialStudent.totalFee : defaultCourse ? defaultCourse.price : 2500
   );
   const [batchTiming, setBatchTiming] = useState(
-    initialStudent?.batchTiming || defaultCourse?.batchSchedule || ''
+    initialStudent?.batchTiming || defaultCourse?.batchSchedule || 'Mon, Wed, Fri (5:00 PM - 6:30 PM)'
   );
   const [dueDate, setDueDate] = useState(
     initialStudent?.dueDate ||
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
   const [notes, setNotes] = useState(initialStudent?.notes || '');
+
+  // Teacher Name & Mobile Number (Required by user)
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
+    initialStudent?.teacherId || defaultTeacher?.id || ''
+  );
+  const [teacherName, setTeacherName] = useState<string>(
+    initialStudent?.teacherName || defaultTeacher?.name || ''
+  );
+  const [teacherPhone, setTeacherPhone] = useState<string>(
+    initialStudent?.teacherPhone || defaultTeacher?.phone || ''
+  );
 
   // For brand new admission: initial payment input
   const [initialPaymentAmount, setInitialPaymentAmount] = useState<number>(
@@ -50,20 +75,47 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const [initialPaymentMethod, setInitialPaymentMethod] = useState<PaymentMethod>('UPI');
   const [initialPaymentRemarks, setInitialPaymentRemarks] = useState('Admission registration fee');
 
-  const selectedCourse = courses.find((c) => c.id === courseId);
-  const assignedTeacher = teachers.find((t) => t.id === selectedCourse?.teacherId);
-
+  // When course changes, update price and batch timing
   const handleCourseChange = (id: string) => {
     setCourseId(id);
     const c = courses.find((item) => item.id === id);
     if (c) {
+      setCustomCourseTitle(c.title);
       setTotalFee(c.price);
       if (!isEditing) {
         setInitialPaymentAmount(c.price);
       }
       setBatchTiming(c.batchSchedule);
+
+      // If course has a designated teacher, auto-suggest them if teacher not already typed
+      if (c.teacherId) {
+        const t = teachers.find((tch) => tch.id === c.teacherId);
+        if (t && !teacherName) {
+          setSelectedTeacherId(t.id);
+          setTeacherName(t.name);
+          setTeacherPhone(t.phone);
+        }
+      }
     }
   };
+
+  // When teacher dropdown changes
+  const handleTeacherSelect = (tchId: string) => {
+    setSelectedTeacherId(tchId);
+    if (tchId === 'new') {
+      setTeacherName('');
+      setTeacherPhone('');
+    } else {
+      const t = teachers.find((item) => item.id === tchId);
+      if (t) {
+        setTeacherName(t.name);
+        setTeacherPhone(t.phone);
+      }
+    }
+  };
+
+  // Calculate 50% teacher share preview
+  const calculated50Share = Math.round((Number(totalFee) || 0) * 0.5);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +130,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       status = 'Partial';
     }
 
+    const effectiveCourseTitle =
+      courses.find((c) => c.id === courseId)?.title ||
+      customCourseTitle.trim() ||
+      'General Course';
+
     const studentData: Student = {
       id: initialStudent ? initialStudent.id : `std-${Date.now()}`,
       rollNo: initialStudent ? initialStudent.rollNo : `PRA-${Math.floor(100 + Math.random() * 900)}`,
@@ -87,7 +144,12 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       whatsapp: whatsapp.trim() || phone.trim(),
       age: Number(age) || 0,
       gender,
-      courseId,
+      courseId: courseId || `crs-manual-${Date.now()}`,
+      courseTitle: effectiveCourseTitle,
+      teacherId: selectedTeacherId !== 'new' ? selectedTeacherId : '',
+      teacherName: teacherName.trim(),
+      teacherPhone: teacherPhone.trim(),
+      teacherShareAmount: calculated50Share,
       enrollmentDate: initialStudent ? initialStudent.enrollmentDate : new Date().toISOString().split('T')[0],
       dueDate,
       totalFee: Number(totalFee) || 0,
@@ -112,185 +174,333 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
-        <div className="flex items-center justify-between bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-4 text-white">
-          <div className="flex items-center gap-2">
-            {isEditing ? <UserCheck className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
-            <h2 className="text-base font-bold">
-              {isEditing ? 'Student Details Edit Karein' : 'Naya Student Admission / Registration'}
-            </h2>
+      <div className="w-full max-w-xl rounded-3xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header - Simple & Clean */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4 text-white shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-white font-bold">
+              {isEditing ? <UserCheck className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
+            </div>
+            <div>
+              <h2 className="text-base font-black tracking-tight">
+                {isEditing ? 'Student Details Edit Karein' : 'Naya Admission (Student Enrollment)'}
+              </h2>
+              <p className="text-[11px] text-amber-100">
+                Student details aur Teacher ka 50% automatic hisaab
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-white/80 hover:bg-white/10 hover:text-white"
+            className="rounded-xl p-1.5 text-white/80 hover:bg-white/10 hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 overflow-y-auto space-y-4 text-xs">
-          {/* Full Name & Age */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <label className="font-semibold text-slate-700 block mb-1">
-                Student Ka Pura Naam *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Aarav Sharma"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 text-xs">
+          {/* SECTION 1: STUDENT BASIC DETAILS */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-slate-800 text-xs uppercase tracking-wider pb-1 border-b border-slate-200">
+              <User className="h-4 w-4 text-amber-600" />
+              <span>1. Student Ki Details</span>
             </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Umar / Age</label>
-              <input
-                type="number"
-                min="3"
-                max="90"
-                value={age}
-                onChange={(e) => setAge(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Student Ka Naam *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Aarav Sharma"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-medium focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Umar / Age
+                </label>
+                <input
+                  type="number"
+                  min="3"
+                  max="90"
+                  value={age}
+                  onChange={(e) => setAge(Number(e.target.value))}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-medium focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Mobile / Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="10 digit phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-mono font-medium focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  WhatsApp Number (Reminders ke liye)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="WhatsApp number (optional)"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-mono focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Mata / Pita (Guardian) Ka Naam
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ramesh Sharma"
+                  value={parentName}
+                  onChange={(e) => setParentName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Gender</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value as Student['gender'])}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
+                >
+                  <option value="Male">Male (Ladka)</option>
+                  <option value="Female">Female (Ladki)</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Guardian & Gender */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Mata/Pita (Guardian) Ka Naam
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Ramesh Sharma"
-                value={parentName}
-                onChange={(e) => setParentName(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
+          {/* SECTION 2: COURSE & FEES */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-slate-800 text-xs uppercase tracking-wider pb-1 border-b border-slate-200">
+              <GraduationCap className="h-4 w-4 text-amber-600" />
+              <span>2. Course & Fees</span>
             </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">Gender</label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as Student['gender'])}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Course Chunein ya Likhein *
+                </label>
+                {courses.length > 0 ? (
+                  <select
+                    value={courseId}
+                    onChange={(e) => handleCourseChange(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-semibold focus:border-amber-500 focus:outline-none"
+                  >
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title} — {formatCurrency(c.price)}
+                      </option>
+                    ))}
+                    <option value="custom">+ Dusra / Custom Course</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Dance, Meditation, Acting, Guitar"
+                    value={customCourseTitle}
+                    onChange={(e) => setCustomCourseTitle(e.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-medium focus:border-amber-500 focus:outline-none"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Total Course Fee (₹) *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={totalFee}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 0;
+                    setTotalFee(val);
+                    if (!isEditing && initialPaymentAmount > val) {
+                      setInitialPaymentAmount(val);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-900 font-bold focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Batch Timing / Schedule
+                </label>
+                <input
+                  type="text"
+                  value={batchTiming}
+                  onChange={(e) => setBatchTiming(e.target.value)}
+                  placeholder="e.g. Mon, Wed, Fri (5:00 PM - 6:30 PM)"
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Next Due Date (Fee Baki Date)
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Contact Numbers */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Calling Number *
-              </label>
-              <input
-                type="tel"
-                required
-                placeholder="10 digit phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none font-mono"
-              />
-            </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                WhatsApp Number (for Reminder)
-              </label>
-              <input
-                type="tel"
-                placeholder="Same as phone or different"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Course Selection */}
-          <div className="rounded-xl bg-amber-50/50 p-3.5 border border-amber-200 space-y-2.5">
-            <div>
-              <label className="font-semibold text-slate-800 block mb-1">
-                Course Ya Package Chunein *
-              </label>
-              {courses.length === 0 ? (
-                <div className="rounded-lg bg-amber-100/90 p-3 text-amber-900 border border-amber-300 text-center">
-                  <p className="font-bold">Koi Course Available Nahi Hai</p>
-                  <p className="text-[11px] mt-0.5 text-amber-800">
-                    Admission lene se pehle 'Courses' tab mein jaakar ek Course add karein.
+          {/* SECTION 3: TEACHER NAME & MOBILE NUMBER (CRITICAL USER REQUIREMENT) */}
+          <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/80 via-white to-amber-50/60 p-4 space-y-3.5 shadow-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-purple-200">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-600 text-white font-bold text-xs">
+                  50%
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-xs sm:text-sm">
+                    Teacher Details & 50% Auto Share
+                  </h3>
+                  <p className="text-[11px] text-purple-700 font-medium">
+                    Admission hote hi 50% automatic is teacher ke column mein add ho jayega
                   </p>
                 </div>
-              ) : (
+              </div>
+
+              <span className="rounded-lg bg-purple-100 text-purple-900 px-2.5 py-1 text-[11px] font-black border border-purple-300">
+                50% Share Formula
+              </span>
+            </div>
+
+            {/* Quick dropdown if teachers already exist */}
+            {teachers.length > 0 && (
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">
+                  Existing Teacher Chunein (Ya Naya Name Likhein)
+                </label>
                 <select
-                  value={courseId}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs text-slate-800 font-semibold focus:border-amber-500 focus:outline-none"
+                  value={selectedTeacherId}
+                  onChange={(e) => handleTeacherSelect(e.target.value)}
+                  className="w-full rounded-xl border border-purple-300 bg-white p-2.5 text-xs text-slate-800 font-semibold focus:border-purple-500 focus:outline-none"
                 >
-                  <option value="">-- Course Chunein --</option>
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.title} ({c.duration}) — {formatCurrency(c.price)}
+                  <option value="">-- Teacher List Se Chunein --</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} (Phone: {t.phone || 'N/A'}) • {t.specialty}
                     </option>
                   ))}
+                  <option value="new">+ Naya Teacher Enter Karein</option>
                 </select>
-              )}
-            </div>
-
-            {selectedCourse && (
-              <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1 border-t border-amber-200/60">
-                <span>Teacher: <strong className="text-slate-800">{assignedTeacher?.name || 'Not assigned'}</strong></span>
-                <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                  <Percent className="h-3 w-3" /> 50% Teacher Share Auto Added
-                </span>
               </div>
             )}
-          </div>
 
-          {/* Batch Timing & Fee */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Batch Timing / Schedule
-              </label>
-              <input
-                type="text"
-                value={batchTiming}
-                onChange={(e) => setBatchTiming(e.target.value)}
-                placeholder="e.g. Mon-Wed 5:00 PM"
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Total Course Fee (₹)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={totalFee}
-                onChange={(e) => setTotalFee(Number(e.target.value))}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none font-bold"
-              />
-            </div>
-          </div>
+            {/* Teacher Name & Mobile Number Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1 flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-purple-600" />
+                  <span>Teacher Ka Naam (Teacher Name) *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Rahul Verma / Vikram Sir"
+                  value={teacherName}
+                  onChange={(e) => setTeacherName(e.target.value)}
+                  className="w-full rounded-xl border-2 border-purple-200 bg-white p-2.5 text-xs text-slate-900 font-bold focus:border-purple-600 focus:outline-none placeholder:font-normal placeholder:text-slate-400"
+                />
+              </div>
 
-          {/* If Brand New Admission, allow instant first payment */}
-          {!isEditing && (
-            <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200 space-y-2.5">
-              <span className="font-bold text-slate-800 block text-xs">
-                First Fee Collection / Abhi Jama Rashi:
-              </span>
-              <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-bold text-slate-800 block mb-1 flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5 text-purple-600" />
+                  <span>Teacher Ka Mobile Number *</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="10 digit teacher mobile number"
+                  value={teacherPhone}
+                  onChange={(e) => setTeacherPhone(e.target.value)}
+                  className="w-full rounded-xl border-2 border-purple-200 bg-white p-2.5 text-xs text-slate-900 font-mono font-bold focus:border-purple-600 focus:outline-none placeholder:font-normal placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* 50% Live Share Summary Box */}
+            <div className="rounded-xl bg-white p-3 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                  <Percent className="h-4 w-4" />
+                </div>
                 <div>
-                  <label className="font-medium text-slate-600 block mb-1">
-                    Jama Amount (₹)
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    Total Fees Ka 50% Teacher Share:
+                  </div>
+                  <div className="font-bold text-slate-800 text-xs">
+                    {teacherName ? `${teacherName}` : 'Teacher'} ko milne wala hisaab
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-right bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                <span className="text-[10px] uppercase font-bold text-emerald-800 block">
+                  Automatic 50% Share
+                </span>
+                <span className="text-base font-black text-emerald-700">
+                  {formatCurrency(calculated50Share)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: FIRST FEE COLLECTION (OPTIONAL/INSTANT) */}
+          {!isEditing && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                  <CreditCard className="h-4 w-4 text-amber-600" />
+                  <span>Admission Ke Samay Fees Jama (First Payment)</span>
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Abhi jama ya baad mein
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Abhi Jama Ki Gayi Fees (₹)
                   </label>
                   <input
                     type="number"
@@ -298,72 +508,49 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                     max={totalFee}
                     value={initialPaymentAmount}
                     onChange={(e) => setInitialPaymentAmount(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-300 p-2 text-xs font-bold text-emerald-700 bg-white"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs font-bold text-emerald-700 bg-white focus:border-amber-500 focus:outline-none"
                   />
-                  <span className="text-[10px] text-slate-500 block mt-0.5">
-                    Pending Due: {formatCurrency(Math.max(0, totalFee - initialPaymentAmount))}
-                  </span>
+                  <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>Dena Baki: {formatCurrency(Math.max(0, totalFee - initialPaymentAmount))}</span>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="font-medium text-slate-600 block mb-1">
+                  <label className="font-semibold text-slate-700 block mb-1">
                     Payment Mode
                   </label>
                   <select
                     value={initialPaymentMethod}
                     onChange={(e) => setInitialPaymentMethod(e.target.value as PaymentMethod)}
-                    className="w-full rounded-xl border border-slate-300 p-2 text-xs text-slate-800 bg-white"
+                    className="w-full rounded-xl border border-slate-300 p-2.5 text-xs text-slate-800 bg-white focus:border-amber-500 focus:outline-none"
                   >
-                    <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
-                    <option value="Cash">Cash (Counter)</option>
-                    <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                    <option value="Card">Card / POS</option>
+                    <option value="UPI">UPI (GPay, PhonePe, Paytm, QR)</option>
+                    <option value="Cash">Cash (Counter Par Diya)</option>
+                    <option value="Bank Transfer">Bank Transfer / NEFT / IMPS</option>
+                    <option value="Card">Card / Debit / Credit</option>
                   </select>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Next Due Date & Notes */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Next Fee Due Date
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="font-semibold text-slate-700 block mb-1">
-                Notes / Vishesh Jankari
-              </label>
-              <input
-                type="text"
-                placeholder="Optional notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          {/* Action Buttons */}
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 font-medium text-slate-500 hover:bg-slate-100"
+              className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-amber-500 px-5 py-2 font-bold text-white shadow-md hover:bg-amber-600 transition-all"
+              className="rounded-xl bg-amber-500 px-6 py-2.5 text-xs font-bold text-slate-950 shadow-md hover:bg-amber-400 active:scale-95 transition-all flex items-center gap-2"
             >
-              {isEditing ? 'Save Changes' : 'Confirm Admission'}
+              <Sparkles className="h-4 w-4" />
+              <span>
+                {isEditing ? 'Save Changes' : 'Admission Confirm Karein & 50% Add Karein'}
+              </span>
             </button>
           </div>
         </form>

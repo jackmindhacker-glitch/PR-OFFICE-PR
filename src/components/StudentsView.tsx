@@ -15,6 +15,8 @@ import {
   Clock,
   GraduationCap,
   IndianRupee,
+  User,
+  Percent,
 } from 'lucide-react';
 import { Student, Course, PaymentRecord, Teacher } from '../types/academy';
 import { formatCurrency, formatDate } from '../utils/calculations';
@@ -48,10 +50,14 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Due' | 'Paid' | 'Partial'>('All');
   const [courseFilter, setCourseFilter] = useState<string>('All');
+  const [teacherFilter, setTeacherFilter] = useState<string>('All');
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
   const courseMap = new Map<string, Course>();
   courses.forEach((c) => courseMap.set(c.id, c));
+
+  const teacherMap = new Map<string, Teacher>();
+  teachers.forEach((t) => teacherMap.set(t.id, t));
 
   const filteredStudents = students.filter((student) => {
     const course = courseMap.get(student.courseId);
@@ -59,7 +65,9 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
       student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.rollNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.phone.includes(searchQuery) ||
-      (student.parentName && student.parentName.toLowerCase().includes(searchQuery.toLowerCase()));
+      (student.parentName && student.parentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (student.teacherName && student.teacherName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (student.teacherPhone && student.teacherPhone.includes(searchQuery));
 
     const isDue = student.totalFee > student.paidAmount;
     const matchesStatus =
@@ -73,7 +81,15 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
 
     const matchesCourse = courseFilter === 'All' ? true : student.courseId === courseFilter;
 
-    return matchesSearch && matchesStatus && matchesCourse;
+    const matchesTeacher =
+      teacherFilter === 'All'
+        ? true
+        : student.teacherId === teacherFilter ||
+          (student.teacherName &&
+            teachers.find((t) => t.id === teacherFilter)?.name.toLowerCase() ===
+              student.teacherName.toLowerCase());
+
+    return matchesSearch && matchesStatus && matchesCourse && matchesTeacher;
   });
 
   return (
@@ -142,7 +158,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="w-full sm:w-44 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:border-amber-500 focus:outline-none"
+            className="w-full sm:w-40 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 focus:border-amber-500 focus:outline-none"
           >
             <option value="All">All Courses</option>
             {courses.map((c) => (
@@ -152,13 +168,28 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
             ))}
           </select>
 
-          <div className="relative w-full sm:w-60">
+          {teachers.length > 0 && (
+            <select
+              value={teacherFilter}
+              onChange={(e) => setTeacherFilter(e.target.value)}
+              className="w-full sm:w-40 rounded-xl border border-purple-200 bg-purple-50/50 px-3 py-2 text-xs text-purple-900 font-medium focus:border-purple-500 focus:outline-none"
+            >
+              <option value="All">All Teachers</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div className="relative w-full sm:w-56">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search naam ya roll number..."
+              placeholder="Search naam, roll, teacher..."
               className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 py-2 text-xs text-slate-800 focus:border-amber-500 focus:bg-white focus:outline-none"
             />
           </div>
@@ -173,13 +204,12 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
               <tr>
                 <th className="py-3.5 px-4">Roll / Student</th>
                 <th className="py-3.5 px-4">Course & Batch</th>
-                <th className="py-3.5 px-4">Contact</th>
+                <th className="py-3.5 px-4 text-purple-900 font-bold">Teacher & Mobile</th>
                 <th className="py-3.5 px-4">Total Fee</th>
                 <th className="py-3.5 px-4">Paid / Due</th>
+                <th className="py-3.5 px-4 text-center text-purple-900 font-bold">Teacher 50% Share</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
-                {/* As requested: "reminder WhatsApp Par message karne Ke liye Bhi Kollam, yeah button" */}
                 <th className="py-3.5 px-4 text-center">WhatsApp Reminder</th>
-                {/* As requested: "payment detail KAB ek button Jise ki payment ke baare mein Hamari Puri detail rahe" */}
                 <th className="py-3.5 px-4 text-center">Payment Detail</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -187,6 +217,19 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredStudents.map((student) => {
                 const course = courseMap.get(student.courseId);
+                const teacher =
+                  teacherMap.get(student.teacherId || '') ||
+                  teachers.find(
+                    (t) =>
+                      t.name.trim().toLowerCase() === student.teacherName?.trim().toLowerCase()
+                  );
+                const displayTeacherName = student.teacherName || teacher?.name || 'Academy Direct';
+                const displayTeacherPhone = student.teacherPhone || teacher?.phone || '';
+                const teacher50Share =
+                  student.teacherShareAmount ||
+                  Math.round(
+                    ((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) * 0.5
+                  );
                 const dueAmount = Math.max(0, student.totalFee - student.paidAmount);
                 const isPaid = dueAmount === 0;
 
@@ -210,19 +253,29 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                     {/* Course & Timing */}
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-slate-800">
-                        {course ? course.title : 'Course N/A'}
+                        {student.courseTitle || (course ? course.title : 'Course N/A')}
                       </div>
                       <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
                         {student.batchTiming || course?.batchSchedule || '-'}
                       </div>
                     </td>
 
-                    {/* Contact */}
+                    {/* Teacher Name & Mobile Number (Required by user) */}
                     <td className="py-3.5 px-4">
-                      <div className="font-mono text-slate-700">{student.phone}</div>
-                      <div className="text-[11px] text-slate-400">
-                        Guardian: {student.parentName || '-'}
+                      <div className="font-bold text-purple-950 flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                        <span>{displayTeacherName}</span>
                       </div>
+                      {displayTeacherPhone ? (
+                        <div className="text-[11px] text-purple-700 font-mono flex items-center gap-1 mt-0.5">
+                          <Phone className="h-3 w-3 text-purple-400 shrink-0" />
+                          <a href={`tel:${displayTeacherPhone}`} className="hover:underline">
+                            {displayTeacherPhone}
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400">Mobile n/a</span>
+                      )}
                     </td>
 
                     {/* Total Fee */}
@@ -242,6 +295,18 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                       ) : (
                         <div className="text-slate-400 text-[11px]">Nil Due</div>
                       )}
+                    </td>
+
+                    {/* Teacher 50% Auto Share */}
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="inline-flex flex-col items-center rounded-xl bg-purple-50 px-3 py-1 border border-purple-200">
+                        <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
+                          50% Vetan
+                        </span>
+                        <span className="text-xs font-black text-purple-900">
+                          {formatCurrency(teacher50Share)}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Status Badge */}
@@ -323,6 +388,19 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
       <div className="grid grid-cols-1 gap-3 md:hidden">
         {filteredStudents.map((student) => {
           const course = courseMap.get(student.courseId);
+          const teacher =
+            teacherMap.get(student.teacherId || '') ||
+            teachers.find(
+              (t) =>
+                t.name.trim().toLowerCase() === student.teacherName?.trim().toLowerCase()
+            );
+          const displayTeacherName = student.teacherName || teacher?.name || 'Academy Direct';
+          const displayTeacherPhone = student.teacherPhone || teacher?.phone || '';
+          const teacher50Share =
+            student.teacherShareAmount ||
+            Math.round(
+              ((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) * 0.5
+            );
           const dueAmount = Math.max(0, student.totalFee - student.paidAmount);
 
           return (
@@ -342,7 +420,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                     </span>
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    {course ? course.title : 'Course'}
+                    {student.courseTitle || (course ? course.title : 'Course')}
                   </div>
                 </div>
 
@@ -355,6 +433,38 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                 >
                   {dueAmount === 0 ? 'Paid' : `Due: ${formatCurrency(dueAmount)}`}
                 </span>
+              </div>
+
+              {/* Teacher & 50% Share Card Box (Requested) */}
+              <div className="rounded-xl bg-purple-50/80 p-2.5 text-xs flex justify-between items-center border border-purple-200">
+                <div>
+                  <span className="text-[10px] text-purple-700 font-bold uppercase block">
+                    Teacher & Mobile
+                  </span>
+                  <span className="font-bold text-purple-950 flex items-center gap-1 mt-0.5">
+                    <User className="h-3.5 w-3.5 text-purple-600" />
+                    <span>{displayTeacherName}</span>
+                  </span>
+                  {displayTeacherPhone ? (
+                    <span className="text-[11px] text-purple-700 font-mono flex items-center gap-1 mt-0.5">
+                      <Phone className="h-3 w-3 text-purple-500" />
+                      <a href={`tel:${displayTeacherPhone}`} className="hover:underline">
+                        {displayTeacherPhone}
+                      </a>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 block mt-0.5">Mobile not added</span>
+                  )}
+                </div>
+
+                <div className="text-right bg-white px-2.5 py-1.5 rounded-xl border border-purple-200 shadow-2xs">
+                  <span className="text-[10px] text-purple-700 font-bold uppercase block">
+                    50% Share
+                  </span>
+                  <span className="text-sm font-black text-purple-900">
+                    {formatCurrency(teacher50Share)}
+                  </span>
+                </div>
               </div>
 
               {/* Fee Bar */}

@@ -275,31 +275,78 @@ export default function App() {
   ) => {
     const isNew = !students.some((s) => s.id === savedStudent.id);
 
+    // Auto-create or link teacher if teacherName was provided
+    let teacherId = savedStudent.teacherId;
+    const tName = savedStudent.teacherName?.trim();
+    const tPhone = savedStudent.teacherPhone?.trim();
+
+    if (tName) {
+      const existingTeacher = teachers.find(
+        (t) =>
+          (teacherId && t.id === teacherId) ||
+          t.name.trim().toLowerCase() === tName.toLowerCase() ||
+          (tPhone && t.phone.trim() === tPhone)
+      );
+
+      if (existingTeacher) {
+        teacherId = existingTeacher.id;
+        // If phone was entered or updated, update teacher's phone
+        if (tPhone && tPhone !== existingTeacher.phone) {
+          setTeachers((prev) =>
+            prev.map((t) => (t.id === existingTeacher.id ? { ...t, phone: tPhone } : t))
+          );
+        }
+      } else {
+        // Auto-create teacher so they immediately show up in Teachers Salary list!
+        const newTeacher: Teacher = {
+          id: `tch-${Date.now()}`,
+          name: tName,
+          phone: tPhone || '',
+          specialty: 'Academy Instructor',
+          upiOrBank: '',
+          sharePercentage: 50,
+          joinDate: new Date().toISOString().split('T')[0],
+          avatarColor: 'from-purple-500 to-indigo-600',
+        };
+        setTeachers((prev) => [...prev, newTeacher]);
+        teacherId = newTeacher.id;
+      }
+    }
+
+    // Set updated teacherId on student record
+    const updatedStudent: Student = {
+      ...savedStudent,
+      teacherId: teacherId || savedStudent.teacherId,
+      teacherShareAmount: Math.round(
+        ((initialPayment && initialPayment.amount > 0 ? initialPayment.amount : savedStudent.totalFee) || 0) * 0.5
+      ),
+    };
+
     setStudents((prev) => {
-      const idx = prev.findIndex((s) => s.id === savedStudent.id);
+      const idx = prev.findIndex((s) => s.id === updatedStudent.id);
       if (idx >= 0) {
         const next = [...prev];
-        next[idx] = savedStudent;
+        next[idx] = updatedStudent;
         return next;
       }
-      return [savedStudent, ...prev];
+      return [updatedStudent, ...prev];
     });
 
     if (initialPayment && initialPayment.amount > 0) {
-      const selectedCourse = courses.find((c) => c.id === savedStudent.courseId);
+      const selectedCourse = courses.find((c) => c.id === updatedStudent.courseId);
       const teacherShareAmount = Math.round(initialPayment.amount * 0.5); // 50% Auto Share
 
       const newPayment: PaymentRecord = {
         id: `pay-${Date.now()}`,
-        studentId: savedStudent.id,
-        studentName: savedStudent.fullName,
-        courseTitle: selectedCourse ? selectedCourse.title : 'Course',
+        studentId: updatedStudent.id,
+        studentName: updatedStudent.fullName,
+        courseTitle: updatedStudent.courseTitle || (selectedCourse ? selectedCourse.title : 'Course'),
         amount: initialPayment.amount,
         paymentMethod: initialPayment.method,
         date: new Date().toISOString(),
         receiptNo: `PRA-REC-${Math.floor(100 + Math.random() * 900)}`,
         remarks: initialPayment.remarks || 'Admission enrollment fee',
-        teacherId: selectedCourse?.teacherId || '',
+        teacherId: teacherId || selectedCourse?.teacherId || '',
         teacherShareAmount,
       };
 
@@ -308,8 +355,8 @@ export default function App() {
 
     showToast(
       isNew
-        ? `${savedStudent.fullName} ka admission safalta-purvak ho gaya!`
-        : `${savedStudent.fullName} ki details update ho gayi!`
+        ? `${updatedStudent.fullName} ka admission ho gaya! 50% teacher share (${tName || 'Teacher'}) add ho gaya.`
+        : `${updatedStudent.fullName} ki details update ho gayi!`
     );
   };
 

@@ -12,6 +12,7 @@ import {
   Sparkles,
   Settings,
   Cloud,
+  Globe,
 } from 'lucide-react';
 
 export type NavTab = 'dashboard' | 'courses' | 'students' | 'payments' | 'teachers';
@@ -23,6 +24,7 @@ interface NavbarProps {
   onQuickAdmission: () => void;
   onAddCourse: () => void;
   onOpenSettings: () => void;
+  onSwitchToWebsite?: () => void;
   isGoogleConnected?: boolean;
   pendingDueCount: number;
 }
@@ -34,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onQuickAdmission,
   onAddCourse,
   onOpenSettings,
+  onSwitchToWebsite,
   isGoogleConnected,
   pendingDueCount,
 }) => {
@@ -136,6 +139,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick Actions & Lock */}
           <div className="flex items-center gap-2">
+            {onSwitchToWebsite && (
+              <button
+                onClick={onSwitchToWebsite}
+                title="Public Website Dekhein"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-all shadow-2xs"
+              >
+                <Globe className="h-4 w-4 text-amber-700" />
+                <span className="hidden sm:inline">🌐 Website</span>
+              </button>
+            )}
+
             <button
               onClick={onQuickAdmission}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:from-amber-600 hover:to-amber-700 transition-all active:scale-95"
@@ -180,6 +194,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Mobile dropdown menu if open */}
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 bg-white px-4 py-3 lg:hidden space-y-1">
+            {onSwitchToWebsite && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onSwitchToWebsite();
+                }}
+                className="flex w-full items-center justify-between rounded-xl p-2.5 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 mb-2"
+              >
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-amber-700" />
+                  <span>Public Website Dekhein</span>
+                </div>
+                <span>→</span>
+              </button>
+            )}
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;

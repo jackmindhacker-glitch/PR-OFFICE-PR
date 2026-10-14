@@ -37,6 +37,11 @@ export interface Student {
   age: number;
   gender: 'Male' | 'Female' | 'Other';
   courseId: string;
+  courseTitle?: string;
+  teacherId?: string;
+  teacherName?: string;
+  teacherPhone?: string;
+  teacherShareAmount?: number; // 50% automatic calculated share
   enrollmentDate: string;
   dueDate: string;
   totalFee: number;

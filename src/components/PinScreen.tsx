@@ -4,9 +4,10 @@ import { Lock, ShieldCheck, Delete, Sparkles } from 'lucide-react';
 interface PinScreenProps {
   correctPin: string;
   onSuccess: () => void;
+  onBackToWebsite?: () => void;
 }
 
-export const PinScreen: React.FC<PinScreenProps> = ({ correctPin, onSuccess }) => {
+export const PinScreen: React.FC<PinScreenProps> = ({ correctPin, onSuccess, onBackToWebsite }) => {
   const [pin, setPin] = useState<string>('');
   const [isError, setIsError] = useState<boolean>(false);
   const [shake, setShake] = useState<boolean>(false);
@@ -158,7 +159,19 @@ export const PinScreen: React.FC<PinScreenProps> = ({ correctPin, onSuccess }) =
           </button>
         </div>
 
-        <div className="mt-6 text-center">
+        {onBackToWebsite && (
+          <div className="mt-4 pt-3 border-t border-slate-800 text-center">
+            <button
+              type="button"
+              onClick={onBackToWebsite}
+              className="text-xs font-semibold text-slate-400 hover:text-amber-300 transition-colors"
+            >
+              ← Public Website Par Wapas Jayein
+            </button>
+          </div>
+        )}
+
+        <div className="mt-4 text-center">
           <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1">
             <Sparkles className="h-3 w-3 text-amber-400/70" />
             Dance • Meditation • Acting • Music
