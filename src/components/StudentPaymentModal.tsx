@@ -49,7 +49,8 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
     e.preventDefault();
     if (amount <= 0) return;
 
-    const teacherShareAmount = Math.round(amount * 0.5); // 50% auto share
+    const sharePct = student.teacherSharePercent ?? teacher?.sharePercentage ?? 50;
+    const teacherShareAmount = Math.round(amount * (sharePct / 100));
 
     onAddPayment({
       studentId: student.id,
@@ -60,6 +61,7 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
       date: new Date().toISOString(),
       remarks: remarks.trim() || 'Installment payment',
       teacherId: student.teacherId || teacher?.id || course?.teacherId || '',
+      teacherSharePercent: sharePct,
       teacherShareAmount,
     });
 
@@ -142,7 +144,7 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
               )}
             </div>
             <span className="font-bold text-emerald-700">
-              50% Auto Share: {formatCurrency(Math.round((student.paidAmount > 0 ? student.paidAmount : student.totalFee) * 0.5))}
+              {student.teacherSharePercent ?? teacher?.sharePercentage ?? 50}% Auto Share: {formatCurrency(Math.round(((student.paidAmount > 0 ? student.paidAmount : student.totalFee) * (student.teacherSharePercent ?? teacher?.sharePercentage ?? 50)) / 100))}
             </span>
           </div>
 

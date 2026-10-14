@@ -44,6 +44,7 @@ interface TeachersSalaryViewProps {
   onViewPayoutVoucher: (payout: TeacherPayout, teacher: Teacher) => void;
   onDeletePayout?: (payoutId: string) => void;
   onDeleteTeacher?: (teacherId: string) => void;
+  onUpdateStudentShare?: (studentId: string, newPercent: number) => void;
 }
 
 export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
@@ -58,6 +59,7 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
   onViewPayoutVoucher,
   onDeletePayout,
   onDeleteTeacher,
+  onUpdateStudentShare,
 }) => {
   const summaries = calculateTeacherSalaries(teachers, courses, students, payments, payouts);
 
@@ -66,6 +68,15 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
   );
   const [payoutToDelete, setPayoutToDelete] = useState<TeacherPayout | null>(null);
   const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
+
+  // Quick student share adjustment state
+  const [studentToAdjust, setStudentToAdjust] = useState<{
+    studentId: string;
+    studentName: string;
+    courseTitle: string;
+    currentPercent: number;
+  } | null>(null);
+  const [adjustPercentVal, setAdjustPercentVal] = useState<number>(50);
 
   // Modals
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
@@ -379,8 +390,8 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                   <div>
                     <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                       <span>{currentSummary.teacher.name}</span>
-                      <span className="rounded-md bg-purple-100 text-purple-800 px-2 py-0.5 text-xs font-bold">
-                        50% Auto Share
+                      <span className="rounded-md bg-purple-100 text-purple-800 px-2.5 py-0.5 text-xs font-bold border border-purple-200">
+                        {currentSummary.teacher.sharePercentage || 50}% Default Share
                       </span>
                     </h2>
                     <p className="text-xs text-slate-600 flex items-center gap-2 mt-1">
@@ -404,19 +415,20 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                 </button>
               </div>
 
-              {/* 50% Rule Highlights Banner */}
-              <div className="rounded-xl bg-amber-50/70 border border-amber-200 p-3.5 flex items-center justify-between text-xs text-amber-900">
+              {/* Dynamic Share Rule Highlights Banner */}
+              <div className="rounded-xl bg-purple-50/70 border border-purple-200 p-3.5 flex items-center justify-between text-xs text-purple-950">
                 <div className="space-y-0.5">
-                  <span className="font-bold block">
-                    Automatic 50% Revenue Share Formula:
+                  <span className="font-bold flex items-center gap-1.5 text-slate-900">
+                    <Percent className="h-3.5 w-3.5 text-purple-700" />
+                    Teacher Revenue Auto Share ({currentSummary.teacher.sharePercentage || 50}% Default):
                   </span>
-                  <span className="text-[11px] text-amber-800">
-                    Students dwara jama kiye gaye fees ka 50% automatically yahan add hota hai.
+                  <span className="text-[11px] text-purple-800">
+                    Admission ke hisaab se percent kam (30%, 40%) ya zyada (60%, 70%) set kiya ja sakta hai.
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Total Share
+                    Kul Teacher Vetan
                   </span>
                   <span className="text-base font-black text-emerald-800">
                     {formatCurrency(currentSummary.totalCalculatedShare)}
@@ -426,8 +438,11 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
 
               {/* Student-wise Breakdown Table */}
               <div>
-                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2">
-                  Enrolled Students & 50% Calculation Breakdown ({currentSummary.studentBreakdown.length})
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>Enrolled Students & Teacher Share Breakdown ({currentSummary.studentBreakdown.length})</span>
+                  <span className="text-[11px] font-semibold text-purple-700 normal-case bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    Custom Share % Supported
+                  </span>
                 </h3>
 
                 {currentSummary.studentBreakdown.length === 0 ? (
@@ -442,9 +457,8 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                           <th className="py-2.5 px-3">Student</th>
                           <th className="py-2.5 px-3">Course</th>
                           <th className="py-2.5 px-3">Student Fee Paid</th>
-                          {/* As requested: "ek new column jisme Likha Ho teacher salary ... 50% automatic teacher K Kollam mein Ad Hojai" */}
-                          <th className="py-2.5 px-3 text-right bg-amber-50/60 font-bold text-amber-900">
-                            Teacher Salary (50%)
+                          <th className="py-2.5 px-3 text-right bg-purple-50/60 font-bold text-purple-950">
+                            Teacher Salary Share
                           </th>
                         </tr>
                       </thead>
@@ -458,8 +472,27 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                             <td className="py-2.5 px-3 font-medium text-slate-700">
                               {formatCurrency(row.paidAmount)}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-black text-emerald-700 bg-amber-50/30">
-                              {formatCurrency(row.teacherShareEarned)}
+                            <td className="py-2.5 px-3 text-right bg-purple-50/30">
+                              <div className="font-black text-emerald-700">
+                                {formatCurrency(row.teacherShareEarned)}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStudentToAdjust({
+                                    studentId: row.studentId,
+                                    studentName: row.studentName,
+                                    courseTitle: row.courseTitle,
+                                    currentPercent: row.teacherSharePercent || currentSummary.teacher.sharePercentage || 50,
+                                  });
+                                  setAdjustPercentVal(row.teacherSharePercent || currentSummary.teacher.sharePercentage || 50);
+                                }}
+                                className="inline-flex items-center gap-1 text-[10px] text-purple-700 font-bold bg-white px-1.5 py-0.5 rounded border border-purple-200 hover:bg-purple-100 active:scale-95 transition-all cursor-pointer mt-0.5"
+                                title="Is student ka % hisaab kam ya zyada karein"
+                              >
+                                <span>{row.teacherSharePercent || currentSummary.teacher.sharePercentage || 50}%</span>
+                                <span className="text-purple-600">✎ Badlein</span>
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -472,7 +505,7 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                           <td className="py-2.5 px-3 text-slate-900">
                             {formatCurrency(currentSummary.totalCourseRevenue)}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-emerald-800 bg-amber-100/50">
+                          <td className="py-2.5 px-3 text-right text-emerald-800 bg-purple-100/50">
                             {formatCurrency(currentSummary.totalCalculatedShare)}
                           </td>
                         </tr>
@@ -605,21 +638,60 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Revenue Share % *
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    required
-                    value={tShare}
-                    onChange={(e) => setTShare(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-amber-500 focus:outline-none font-bold"
-                  />
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
-                    Default 50% automatic
-                  </span>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Teacher Share % (Kam/Zyada) *
+                    </label>
+                    <span className="font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-[11px] border border-purple-200">
+                      {tShare}% Active
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setTShare((prev) => Math.max(1, prev - 5))}
+                      className="h-7 w-7 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Kam"
+                    >
+                      -5%
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      required
+                      value={tShare}
+                      onChange={(e) => setTShare(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+                      className="w-full text-center p-1 text-xs text-slate-900 focus:outline-none font-bold"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTShare((prev) => Math.min(100, prev + 5))}
+                      className="h-7 w-7 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Zyada"
+                    >
+                      +5%
+                    </button>
+                  </div>
+
+                  {/* Quick percentage buttons */}
+                  <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                    {[20, 30, 40, 50, 60, 70, 80].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setTShare(pct)}
+                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-all ${
+                          tShare === pct
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -759,6 +831,139 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Student Share % Adjustment Modal from Salary Breakdown */}
+      {studentToAdjust && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between bg-gradient-to-r from-purple-900 to-indigo-900 px-5 py-4 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500 text-white font-black text-sm">
+                  %
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Teacher Share % Badlein</h3>
+                  <p className="text-[11px] text-purple-200">
+                    {studentToAdjust.studentName} ({studentToAdjust.courseTitle})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStudentToAdjust(null)}
+                className="rounded-lg p-1 text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="rounded-xl bg-purple-50/80 border-2 border-purple-200 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-slate-800 text-xs">
+                      Teacher Percentage Share:
+                    </label>
+                    <p className="text-[10px] text-purple-700">Apne hisaab se kam ya zyada karein</p>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-purple-300 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setAdjustPercentVal((p) => Math.max(0, p - 5))}
+                      className="h-7 w-7 rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Kam"
+                    >
+                      -5%
+                    </button>
+                    <div className="flex items-center px-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={adjustPercentVal}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                          setAdjustPercentVal(val);
+                        }}
+                        className="w-10 text-center font-black text-sm text-purple-950 focus:outline-none"
+                      />
+                      <span className="font-bold text-purple-900 text-xs">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAdjustPercentVal((p) => Math.min(100, p + 5))}
+                      className="h-7 w-7 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Zyada"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {[20, 30, 40, 50, 60, 70, 80, 100].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setAdjustPercentVal(pct)}
+                      className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                        adjustPercentVal === pct
+                          ? 'bg-purple-700 text-white shadow-xs scale-105 ring-2 ring-purple-300'
+                          : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100'
+                      }`}
+                    >
+                      {pct}% {pct === 50 ? '(Standard)' : ''}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Slider */}
+                <div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={adjustPercentVal}
+                    onChange={(e) => setAdjustPercentVal(Number(e.target.value))}
+                    className="w-full accent-purple-600 cursor-pointer h-2 bg-purple-200 rounded-lg"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-medium px-0.5 mt-0.5">
+                    <span>0% (Academy)</span>
+                    <span className="text-purple-700 font-bold">50% (Standard)</span>
+                    <span>100% (Teacher)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setStudentToAdjust(null)}
+                  className="rounded-xl px-4 py-2 font-medium text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (studentToAdjust && onUpdateStudentShare) {
+                      onUpdateStudentShare(studentToAdjust.studentId, adjustPercentVal);
+                    }
+                    setStudentToAdjust(null);
+                  }}
+                  className="rounded-xl bg-purple-700 px-5 py-2 font-bold text-white shadow-md hover:bg-purple-800 active:scale-95 transition-all"
+                >
+                  Save Karein ({adjustPercentVal}%)
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

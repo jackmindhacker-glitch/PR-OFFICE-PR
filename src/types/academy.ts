@@ -22,6 +22,7 @@ export interface Course {
   isPackage?: boolean;
   includedCourseIds?: string[];
   activeStudentsCount?: number;
+  teacherSharePercent?: number; // Customizable default share % for this course (default 50)
 }
 
 export type PaymentStatus = 'Paid' | 'Partial' | 'Pending';
@@ -41,7 +42,8 @@ export interface Student {
   teacherId?: string;
   teacherName?: string;
   teacherPhone?: string;
-  teacherShareAmount?: number; // 50% automatic calculated share
+  teacherSharePercent?: number; // Customizable percentage, e.g. 50, 40, 60, etc.
+  teacherShareAmount?: number; // Calculated share amount
   enrollmentDate: string;
   dueDate: string;
   totalFee: number;
@@ -62,7 +64,8 @@ export interface PaymentRecord {
   receiptNo: string;
   remarks?: string;
   teacherId: string;
-  teacherShareAmount: number; // 50% auto credited
+  teacherSharePercent?: number; // Customizable percentage
+  teacherShareAmount: number; // Credited share amount
 }
 
 export interface TeacherPayout {

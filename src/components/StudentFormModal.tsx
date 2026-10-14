@@ -57,7 +57,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   );
   const [notes, setNotes] = useState(initialStudent?.notes || '');
 
-  // Teacher Name & Mobile Number (Required by user)
+  // Teacher Name & Mobile Number & Customizable Share % (User requested: percent kam/jaada kar sakein)
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(
     initialStudent?.teacherId || defaultTeacher?.id || ''
   );
@@ -66,6 +66,9 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   );
   const [teacherPhone, setTeacherPhone] = useState<string>(
     initialStudent?.teacherPhone || defaultTeacher?.phone || ''
+  );
+  const [teacherSharePercent, setTeacherSharePercent] = useState<number>(
+    initialStudent?.teacherSharePercent ?? defaultTeacher?.sharePercentage ?? 50
   );
 
   // For brand new admission: initial payment input
@@ -87,13 +90,23 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       }
       setBatchTiming(c.batchSchedule);
 
+      // If course has customized teacher share %, apply it
+      if (c.teacherSharePercent !== undefined) {
+        setTeacherSharePercent(c.teacherSharePercent);
+      }
+
       // If course has a designated teacher, auto-suggest them if teacher not already typed
       if (c.teacherId) {
         const t = teachers.find((tch) => tch.id === c.teacherId);
-        if (t && !teacherName) {
-          setSelectedTeacherId(t.id);
-          setTeacherName(t.name);
-          setTeacherPhone(t.phone);
+        if (t) {
+          if (!teacherName) {
+            setSelectedTeacherId(t.id);
+            setTeacherName(t.name);
+            setTeacherPhone(t.phone);
+          }
+          if (c.teacherSharePercent === undefined && t.sharePercentage !== undefined) {
+            setTeacherSharePercent(t.sharePercentage);
+          }
         }
       }
     }
@@ -105,17 +118,23 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     if (tchId === 'new') {
       setTeacherName('');
       setTeacherPhone('');
+      setTeacherSharePercent(50);
     } else {
       const t = teachers.find((item) => item.id === tchId);
       if (t) {
         setTeacherName(t.name);
         setTeacherPhone(t.phone);
+        if (t.sharePercentage !== undefined) {
+          setTeacherSharePercent(t.sharePercentage);
+        }
       }
     }
   };
 
-  // Calculate 50% teacher share preview
-  const calculated50Share = Math.round((Number(totalFee) || 0) * 0.5);
+  // Calculate customizable teacher share preview
+  const calculatedTeacherShare = Math.round(
+    ((Number(totalFee) || 0) * (Number(teacherSharePercent) || 0)) / 100
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +168,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       teacherId: selectedTeacherId !== 'new' ? selectedTeacherId : '',
       teacherName: teacherName.trim(),
       teacherPhone: teacherPhone.trim(),
-      teacherShareAmount: calculated50Share,
+      teacherSharePercent: Number(teacherSharePercent) || 50,
+      teacherShareAmount: calculatedTeacherShare,
       enrollmentDate: initialStudent ? initialStudent.enrollmentDate : new Date().toISOString().split('T')[0],
       dueDate,
       totalFee: Number(totalFee) || 0,
@@ -380,25 +400,25 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </div>
           </div>
 
-          {/* SECTION 3: TEACHER NAME & MOBILE NUMBER (CRITICAL USER REQUIREMENT) */}
-          <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/80 via-white to-amber-50/60 p-4 space-y-3.5 shadow-xs">
+          {/* SECTION 3: TEACHER DETAILS & CUSTOMIZABLE SHARE PERCENTAGE */}
+          <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-purple-50/80 via-white to-amber-50/60 p-4 space-y-4 shadow-xs">
             <div className="flex items-center justify-between pb-2 border-b border-purple-200">
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-600 text-white font-bold text-xs">
-                  50%
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-600 text-white font-black text-xs shadow-xs">
+                  %{teacherSharePercent}
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 text-xs sm:text-sm">
-                    Teacher Details & 50% Auto Share
+                    Teacher Details & Percentage Share
                   </h3>
                   <p className="text-[11px] text-purple-700 font-medium">
-                    Admission hote hi 50% automatic is teacher ke column mein add ho jayega
+                    Admission par {teacherSharePercent}% share is teacher ke khate mein automatic add hoga
                   </p>
                 </div>
               </div>
 
               <span className="rounded-lg bg-purple-100 text-purple-900 px-2.5 py-1 text-[11px] font-black border border-purple-300">
-                50% Share Formula
+                {teacherSharePercent}% Share Active
               </span>
             </div>
 
@@ -416,7 +436,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                   <option value="">-- Teacher List Se Chunein --</option>
                   {teachers.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.name} (Phone: {t.phone || 'N/A'}) • {t.specialty}
+                      {t.name} (Phone: {t.phone || 'N/A'}) • {t.sharePercentage || 50}% Default Share
                     </option>
                   ))}
                   <option value="new">+ Naya Teacher Enter Karein</option>
@@ -457,7 +477,104 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               </div>
             </div>
 
-            {/* 50% Live Share Summary Box */}
+            {/* CUSTOMIZABLE SHARE PERCENTAGE CONTROLS (USER REQUESTED: KAM/ZYADA KAR SAKEIN) */}
+            <div className="rounded-xl bg-purple-50/90 border-2 border-purple-200 p-3.5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="font-black text-slate-900 text-xs flex items-center gap-1.5">
+                    <Percent className="h-4 w-4 text-purple-700" />
+                    <span>Teacher Share Percentage (% Apne Hisaab Se Kam / Zyada Karein):</span>
+                  </label>
+                  <p className="text-[11px] text-purple-700 font-medium mt-0.5">
+                    Standard 50% hota hai, aap ise kam ya zyada set kar sakte hain
+                  </p>
+                </div>
+
+                {/* Direct Number Input + Stepper Buttons */}
+                <div className="flex items-center gap-1 self-start sm:self-auto bg-white p-1 rounded-xl border border-purple-300 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => setTeacherSharePercent((prev) => Math.max(0, prev - 5))}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200 active:scale-95 transition-all text-xs"
+                    title="5% Kam karein"
+                  >
+                    -5%
+                  </button>
+                  <div className="flex items-center px-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={teacherSharePercent}
+                      onChange={(e) => {
+                        const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                        setTeacherSharePercent(val);
+                      }}
+                      className="w-10 text-center font-black text-sm text-purple-950 focus:outline-none"
+                    />
+                    <span className="font-black text-purple-900 text-xs">%</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTeacherSharePercent((prev) => Math.min(100, prev + 5))}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 transition-all text-xs"
+                    title="5% Zyada karein"
+                  >
+                    +5%
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Select Preset Buttons */}
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Quick Select (1-Click Presets):
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[20, 30, 40, 50, 60, 70, 80, 100].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setTeacherSharePercent(pct)}
+                      className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all ${
+                        teacherSharePercent === pct
+                          ? 'bg-purple-700 text-white shadow-xs scale-105 ring-2 ring-purple-300'
+                          : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100'
+                      }`}
+                    >
+                      {pct}% {pct === 50 ? '(Standard)' : ''}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setTeacherSharePercent(50)}
+                    className="rounded-lg px-2 py-1 text-[10px] font-semibold text-purple-700 bg-purple-100/60 hover:bg-purple-200 transition-colors ml-auto"
+                  >
+                    ↺ Reset 50%
+                  </button>
+                </div>
+              </div>
+
+              {/* Range Slider for fast adjustment */}
+              <div className="pt-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={teacherSharePercent}
+                  onChange={(e) => setTeacherSharePercent(Number(e.target.value))}
+                  className="w-full accent-purple-600 cursor-pointer h-2 bg-purple-200 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-500 font-semibold px-0.5 mt-1">
+                  <span>0% (Poora Academy)</span>
+                  <span className="text-purple-700 font-bold">50% (Standard Aadha)</span>
+                  <span>100% (Poora Teacher)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Share Summary Box */}
             <div className="rounded-xl bg-white p-3 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
@@ -465,21 +582,31 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 </div>
                 <div>
                   <div className="text-[11px] text-slate-500 font-medium">
-                    Total Fees Ka 50% Teacher Share:
+                    Total Fee {formatCurrency(totalFee)} ka {teacherSharePercent}% hisaab:
                   </div>
                   <div className="font-bold text-slate-800 text-xs">
-                    {teacherName ? `${teacherName}` : 'Teacher'} ko milne wala hisaab
+                    {teacherName ? `${teacherName}` : 'Teacher'} ko milne wali rashi
                   </div>
                 </div>
               </div>
 
-              <div className="text-right bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                <span className="text-[10px] uppercase font-bold text-emerald-800 block">
-                  Automatic 50% Share
-                </span>
-                <span className="text-base font-black text-emerald-700">
-                  {formatCurrency(calculated50Share)}
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="text-right bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block">
+                    Academy Bachat ({100 - teacherSharePercent}%)
+                  </span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {formatCurrency(Math.max(0, totalFee - calculatedTeacherShare))}
+                  </span>
+                </div>
+                <div className="text-right bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">
+                    Teacher {teacherSharePercent}% Share
+                  </span>
+                  <span className="text-base font-black text-emerald-700">
+                    {formatCurrency(calculatedTeacherShare)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

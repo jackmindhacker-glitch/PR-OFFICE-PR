@@ -33,6 +33,7 @@ export const STARTER_COURSE_TEMPLATES: Omit<Course, 'id' | 'teacherId'>[] = [
     description: 'Dynamic choreography, rhythm, body posture, and stage presence.',
     batchSchedule: 'Mon, Wed, Fri (5:00 PM - 6:30 PM)',
     level: 'Beginner',
+    teacherSharePercent: 50,
   },
   {
     title: 'Mindfulness & Meditation Yoga',
@@ -42,6 +43,7 @@ export const STARTER_COURSE_TEMPLATES: Omit<Course, 'id' | 'teacherId'>[] = [
     description: 'Pranayama, stress relief meditation, sound bowl therapy, and mental clarity.',
     batchSchedule: 'Mon to Fri (6:30 AM - 7:30 AM)',
     level: 'All Levels',
+    teacherSharePercent: 50,
   },
   {
     title: 'Acting & Method Acting Intensive',
@@ -51,6 +53,7 @@ export const STARTER_COURSE_TEMPLATES: Omit<Course, 'id' | 'teacherId'>[] = [
     description: 'Voice modulation, dialogue delivery, camera acting, and audition prep.',
     batchSchedule: 'Saturday & Sunday (10:00 AM - 1:00 PM)',
     level: 'All Levels',
+    teacherSharePercent: 50,
   },
   {
     title: 'Acoustic Guitar Foundation',
@@ -60,5 +63,6 @@ export const STARTER_COURSE_TEMPLATES: Omit<Course, 'id' | 'teacherId'>[] = [
     description: 'Chords, strumming patterns, Bollywood song tabs, and fingerstyle.',
     batchSchedule: 'Tue, Thu, Sat (4:00 PM - 5:30 PM)',
     level: 'Beginner',
+    teacherSharePercent: 50,
   },
 ];

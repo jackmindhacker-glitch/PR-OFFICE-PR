@@ -52,6 +52,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const [formMethod, setFormMethod] = useState<PaymentMethod>('UPI');
   const [formRemarks, setFormRemarks] = useState('');
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formSharePercent, setFormSharePercent] = useState<number>(50);
 
   // Aggregate stats
   const totalCollected = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -76,11 +77,15 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
   const handleOpenAdd = () => {
     setEditingPayment(null);
-    setSelectedStudentId(students[0]?.id || '');
+    const firstStudent = students[0];
+    const initialStudentId = firstStudent?.id || '';
+    setSelectedStudentId(initialStudentId);
     setFormAmount(2500);
     setFormMethod('UPI');
     setFormRemarks('');
     setFormDate(new Date().toISOString().split('T')[0]);
+    const tch = teachers.find((t) => t.id === firstStudent?.teacherId);
+    setFormSharePercent(firstStudent?.teacherSharePercent ?? tch?.sharePercentage ?? 50);
     setIsAddModalOpen(true);
   };
 
@@ -91,6 +96,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     setFormMethod(payment.paymentMethod);
     setFormRemarks(payment.remarks || '');
     setFormDate(payment.date.split('T')[0]);
+    setFormSharePercent(payment.teacherSharePercent || 50);
     setIsAddModalOpen(true);
   };
 
@@ -101,9 +107,10 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
     }
     const st = students.find((s) => s.id === selectedStudentId);
     const crs = courses.find((c) => c.id === st?.courseId);
-    const tch = teachers.find((t) => t.id === crs?.teacherId);
+    const tch = teachers.find((t) => t.id === (st?.teacherId || crs?.teacherId));
 
-    const teacherShareAmount = Math.round(Number(formAmount) * 0.5);
+    const appliedPercent = Number(formSharePercent) || 50;
+    const teacherShareAmount = Math.round((Number(formAmount) * appliedPercent) / 100);
 
     if (editingPayment) {
       onEditPayment({
@@ -112,6 +119,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         paymentMethod: formMethod,
         remarks: formRemarks,
         date: new Date(formDate).toISOString(),
+        teacherSharePercent: appliedPercent,
         teacherShareAmount,
       });
     } else {
@@ -124,6 +132,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
         date: new Date(formDate).toISOString(),
         remarks: formRemarks,
         teacherId: tch ? tch.id : '',
+        teacherSharePercent: appliedPercent,
         teacherShareAmount,
       });
     }
@@ -241,7 +250,7 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                 <th className="py-3.5 px-4">Date & Time</th>
                 <th className="py-3.5 px-4">Mode</th>
                 <th className="py-3.5 px-4">Amount</th>
-                <th className="py-3.5 px-4">50% Teacher Share</th>
+                <th className="py-3.5 px-4 text-purple-900 font-bold">Teacher Share (% Hisaab)</th>
                 <th className="py-3.5 px-4">Remarks</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
@@ -280,11 +289,11 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                       {formatCurrency(p.amount)}
                     </td>
 
-                    {/* 50% Teacher Share */}
-                    <td className="py-3.5 px-4 font-bold text-emerald-700">
+                    {/* Teacher Share */}
+                    <td className="py-3.5 px-4 font-bold text-purple-950">
                       <div>{formatCurrency(p.teacherShareAmount)}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">
-                        ({teacher ? teacher.name : 'Teacher'})
+                      <div className="text-[10px] text-purple-700 font-bold">
+                        ({p.teacherSharePercent || 50}% • {teacher ? teacher.name : 'Teacher'})
                       </div>
                     </td>
 
@@ -360,8 +369,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
 
               <div className="rounded-xl bg-slate-50 p-2.5 text-xs flex justify-between items-center text-slate-600">
                 <span>Date: {formatDate(p.date)}</span>
-                <span className="text-emerald-700 font-semibold">
-                  Teacher 50%: {formatCurrency(p.teacherShareAmount)}
+                <span className="text-purple-700 font-bold">
+                  Teacher ({p.teacherSharePercent || 50}%): {formatCurrency(p.teacherShareAmount)}
                 </span>
               </div>
 
@@ -475,8 +484,8 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     onChange={(e) => setFormAmount(Number(e.target.value))}
                     className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 font-bold focus:border-amber-500 focus:outline-none"
                   />
-                  <span className="text-[10px] text-emerald-600 block mt-0.5">
-                    Teacher 50% Share: {formatCurrency(Math.round(formAmount * 0.5))}
+                  <span className="text-[10px] text-purple-700 font-bold block mt-0.5">
+                    Teacher Share ({formSharePercent}%): {formatCurrency(Math.round((formAmount * formSharePercent) / 100))}
                   </span>
                 </div>
 
@@ -494,6 +503,54 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
                     <option value="Bank Transfer">Bank Transfer</option>
                     <option value="Card">Card</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Teacher Share % in Payment Modal */}
+              <div className="rounded-xl border border-purple-200 bg-purple-50/70 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 text-xs">
+                    Teacher Share % (Kam / Zyada):
+                  </span>
+                  <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-purple-300">
+                    <button
+                      type="button"
+                      onClick={() => setFormSharePercent((p) => Math.max(0, p - 5))}
+                      className="text-purple-900 font-bold px-1 hover:text-purple-700"
+                    >
+                      -5%
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formSharePercent}
+                      onChange={(e) => setFormSharePercent(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                      className="w-8 text-center font-bold text-purple-950 focus:outline-none text-xs"
+                    />
+                    <span className="font-bold text-purple-900 text-xs">%</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormSharePercent((p) => Math.min(100, p + 5))}
+                      className="text-purple-900 font-bold px-1 hover:text-purple-700"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[30, 40, 50, 60, 70, 80].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setFormSharePercent(pct)}
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                        formSharePercent === pct ? 'bg-purple-700 text-white' : 'bg-white text-slate-700 border border-purple-200'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
                 </div>
               </div>
 

@@ -50,6 +50,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
   const [formDescription, setFormDescription] = useState('');
   const [formIsPackage, setFormIsPackage] = useState(false);
   const [formIncludedCourseIds, setFormIncludedCourseIds] = useState<string[]>([]);
+  const [formTeacherSharePercent, setFormTeacherSharePercent] = useState<number>(50);
 
   const categories = ['All', 'Dance', 'Meditation', 'Acting', 'Guitar', 'Packages'];
 
@@ -81,6 +82,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
     setFormDescription('');
     setFormIsPackage(isPackageMode);
     setFormIncludedCourseIds([]);
+    setFormTeacherSharePercent(50);
     setIsModalOpen(true);
   };
 
@@ -96,6 +98,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
     setFormDescription(course.description);
     setFormIsPackage(!!course.isPackage);
     setFormIncludedCourseIds(course.includedCourseIds || []);
+    setFormTeacherSharePercent(course.teacherSharePercent ?? 50);
     setIsModalOpen(true);
   };
 
@@ -115,6 +118,7 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
       level: formLevel,
       isPackage: formIsPackage,
       includedCourseIds: formIsPackage ? formIncludedCourseIds : undefined,
+      teacherSharePercent: Number(formTeacherSharePercent) || 50,
     };
 
     onSaveCourse(newOrUpdatedCourse);
@@ -261,12 +265,16 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                       {teacher ? teacher.name : 'Not Assigned'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-emerald-600 font-medium">
-                    <span className="flex items-center gap-1">
-                      <Percent className="h-3 w-3" /> Teacher 50% Auto Share:
+                  <div className="flex items-center justify-between text-[11px] text-purple-700 font-medium">
+                    <span className="flex items-center gap-1 font-semibold">
+                      <Percent className="h-3 w-3 text-purple-600" /> Teacher Auto Share ({course.teacherSharePercent ?? teacher?.sharePercentage ?? 50}%):
                     </span>
-                    <span className="font-bold">
-                      {formatCurrency(Math.round(course.price * 0.5))}
+                    <span className="font-bold text-purple-900">
+                      {formatCurrency(
+                        Math.round(
+                          (course.price * (course.teacherSharePercent ?? teacher?.sharePercentage ?? 50)) / 100
+                        )
+                      )}
                     </span>
                   </div>
                 </div>
@@ -477,6 +485,88 @@ export const CoursesView: React.FC<CoursesViewProps> = ({
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Customizable Teacher Share % for this course */}
+              <div className="rounded-xl border border-purple-200 bg-purple-50/80 p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                      <Percent className="h-3.5 w-3.5 text-purple-600" />
+                      <span>Course Teacher Share % (Kam / Zyada Karein):</span>
+                    </label>
+                    <p className="text-[10px] text-purple-700">
+                      Is course par admission hone par teacher ko kitne percent dene hain
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-purple-300 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setFormTeacherSharePercent((prev) => Math.max(0, prev - 5))}
+                      className="h-6 w-6 rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200 text-xs flex items-center justify-center"
+                      title="5% Kam"
+                    >
+                      -5%
+                    </button>
+                    <div className="flex items-center px-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={formTeacherSharePercent}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                          setFormTeacherSharePercent(val);
+                        }}
+                        className="w-9 text-center font-black text-xs text-purple-950 focus:outline-none"
+                      />
+                      <span className="font-bold text-purple-900 text-xs">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormTeacherSharePercent((prev) => Math.min(100, prev + 5))}
+                      className="h-6 w-6 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 text-xs flex items-center justify-center"
+                      title="5% Zyada"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[30, 40, 50, 60, 70, 80].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setFormTeacherSharePercent(pct)}
+                      className={`rounded-lg px-2 py-0.5 text-[10px] font-bold transition-all ${
+                        formTeacherSharePercent === pct
+                          ? 'bg-purple-700 text-white shadow-2xs'
+                          : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100'
+                      }`}
+                    >
+                      {pct}% {pct === 50 ? '(Default)' : ''}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Calculation breakdown */}
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-purple-200/60">
+                  <span className="text-slate-600">
+                    Teacher Hissa ({formTeacherSharePercent}%):{' '}
+                    <strong className="text-purple-900">
+                      {formatCurrency(Math.round(formPrice * (formTeacherSharePercent / 100)))}
+                    </strong>
+                  </span>
+                  <span className="text-slate-600">
+                    Academy Bachat ({100 - formTeacherSharePercent}%):{' '}
+                    <strong className="text-slate-800">
+                      {formatCurrency(Math.max(0, formPrice - Math.round(formPrice * (formTeacherSharePercent / 100))))}
+                    </strong>
+                  </span>
                 </div>
               </div>
 

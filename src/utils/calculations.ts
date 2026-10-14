@@ -5,7 +5,7 @@ export interface TeacherSalarySummary {
   coursesCount: number;
   studentsCount: number;
   totalCourseRevenue: number;
-  totalCalculatedShare: number; // 50% automatic share
+  totalCalculatedShare: number; // calculated share based on custom % (default 50%)
   totalPaidOut: number;
   balancePayable: number;
   studentBreakdown: {
@@ -14,6 +14,7 @@ export interface TeacherSalarySummary {
     courseTitle: string;
     coursePrice: number;
     paidAmount: number;
+    teacherSharePercent: number; // e.g. 50, 40, 60
     teacherShareEarned: number;
     enrollmentDate: string;
   }[];
@@ -80,8 +81,9 @@ export function calculateTeacherSalaries(
       const effectiveAmount = student.paidAmount > 0 ? student.paidAmount : student.totalFee;
       totalCourseRevenue += student.paidAmount > 0 ? student.paidAmount : student.totalFee;
 
-      // 50% share on course purchase / student admission
-      const sharePct = (teacher.sharePercentage || 50) / 100;
+      // Customizable share %: prefer student-specific percentage, fallback to course percentage, fallback to teacher's percentage, fallback to 50%
+      const effectivePercent = student.teacherSharePercent ?? course?.teacherSharePercent ?? teacher.sharePercentage ?? 50;
+      const sharePct = effectivePercent / 100;
       const shareEarned = Math.round(effectiveAmount * sharePct);
       totalCalculatedShare += shareEarned;
 
@@ -91,6 +93,7 @@ export function calculateTeacherSalaries(
         courseTitle: student.courseTitle || (course ? course.title : 'Course'),
         coursePrice,
         paidAmount: student.paidAmount,
+        teacherSharePercent: effectivePercent,
         teacherShareEarned: shareEarned,
         enrollmentDate: student.enrollmentDate,
       });

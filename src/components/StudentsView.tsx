@@ -33,6 +33,7 @@ interface StudentsViewProps {
   onOpenWhatsApp: (student: Student) => void;
   onOpenPaymentModal: (student: Student) => void;
   onViewReceipt: (payment: PaymentRecord, student: Student) => void;
+  onUpdateStudentShare?: (studentId: string, newPercent: number) => void;
 }
 
 export const StudentsView: React.FC<StudentsViewProps> = ({
@@ -46,12 +47,34 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   onOpenWhatsApp,
   onOpenPaymentModal,
   onViewReceipt,
+  onUpdateStudentShare,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Due' | 'Paid' | 'Partial'>('All');
   const [courseFilter, setCourseFilter] = useState<string>('All');
   const [teacherFilter, setTeacherFilter] = useState<string>('All');
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+
+  // Quick Share Percentage Adjustment Modal state
+  const [adjustingStudent, setAdjustingStudent] = useState<Student | null>(null);
+  const [newSharePercent, setNewSharePercent] = useState<number>(50);
+
+  const handleSaveAdjustedPercent = () => {
+    if (!adjustingStudent) return;
+    const effectiveFee = (adjustingStudent.paidAmount > 0 ? adjustingStudent.paidAmount : adjustingStudent.totalFee) || 0;
+    const calculatedShare = Math.round((effectiveFee * newSharePercent) / 100);
+
+    if (onUpdateStudentShare) {
+      onUpdateStudentShare(adjustingStudent.id, newSharePercent);
+    } else {
+      onEditStudent({
+        ...adjustingStudent,
+        teacherSharePercent: newSharePercent,
+        teacherShareAmount: calculatedShare,
+      });
+    }
+    setAdjustingStudent(null);
+  };
 
   const courseMap = new Map<string, Course>();
   courses.forEach((c) => courseMap.set(c.id, c));
@@ -207,7 +230,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                 <th className="py-3.5 px-4 text-purple-900 font-bold">Teacher & Mobile</th>
                 <th className="py-3.5 px-4">Total Fee</th>
                 <th className="py-3.5 px-4">Paid / Due</th>
-                <th className="py-3.5 px-4 text-center text-purple-900 font-bold">Teacher 50% Share</th>
+                <th className="py-3.5 px-4 text-center text-purple-900 font-bold">Teacher Share (% Hisaab)</th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 <th className="py-3.5 px-4 text-center">WhatsApp Reminder</th>
                 <th className="py-3.5 px-4 text-center">Payment Detail</th>
@@ -225,10 +248,14 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                   );
                 const displayTeacherName = student.teacherName || teacher?.name || 'Academy Direct';
                 const displayTeacherPhone = student.teacherPhone || teacher?.phone || '';
-                const teacher50Share =
+                const appliedPercent =
+                  student.teacherSharePercent ?? teacher?.sharePercentage ?? 50;
+                const teacherShare =
                   student.teacherShareAmount ||
                   Math.round(
-                    ((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) * 0.5
+                    (((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) *
+                      appliedPercent) /
+                      100
                   );
                 const dueAmount = Math.max(0, student.totalFee - student.paidAmount);
                 const isPaid = dueAmount === 0;
@@ -297,16 +324,29 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                       )}
                     </td>
 
-                    {/* Teacher 50% Auto Share */}
+                    {/* Teacher Dynamic Auto Share */}
                     <td className="py-3.5 px-4 text-center">
-                      <div className="inline-flex flex-col items-center rounded-xl bg-purple-50 px-3 py-1 border border-purple-200">
-                        <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
-                          50% Vetan
-                        </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAdjustingStudent(student);
+                          setNewSharePercent(appliedPercent);
+                        }}
+                        className="group inline-flex flex-col items-center rounded-xl bg-purple-50 px-3 py-1 border border-purple-200 shadow-2xs hover:bg-purple-100 hover:border-purple-300 transition-all cursor-pointer"
+                        title="Teacher share % kam ya zyada karein"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
+                            {appliedPercent}% Vetan
+                          </span>
+                          <span className="text-[9px] text-purple-600 font-semibold group-hover:underline">
+                            ✎ Badlein
+                          </span>
+                        </div>
                         <span className="text-xs font-black text-purple-900">
-                          {formatCurrency(teacher50Share)}
+                          {formatCurrency(teacherShare)}
                         </span>
-                      </div>
+                      </button>
                     </td>
 
                     {/* Status Badge */}
@@ -396,10 +436,14 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
             );
           const displayTeacherName = student.teacherName || teacher?.name || 'Academy Direct';
           const displayTeacherPhone = student.teacherPhone || teacher?.phone || '';
-          const teacher50Share =
+          const appliedPercent =
+            student.teacherSharePercent ?? teacher?.sharePercentage ?? 50;
+          const teacherShare =
             student.teacherShareAmount ||
             Math.round(
-              ((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) * 0.5
+              (((student.paidAmount > 0 ? student.paidAmount : student.totalFee) || 0) *
+                appliedPercent) /
+                100
             );
           const dueAmount = Math.max(0, student.totalFee - student.paidAmount);
 
@@ -435,7 +479,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                 </span>
               </div>
 
-              {/* Teacher & 50% Share Card Box (Requested) */}
+              {/* Teacher & Dynamic Share Card Box */}
               <div className="rounded-xl bg-purple-50/80 p-2.5 text-xs flex justify-between items-center border border-purple-200">
                 <div>
                   <span className="text-[10px] text-purple-700 font-bold uppercase block">
@@ -457,14 +501,25 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                   )}
                 </div>
 
-                <div className="text-right bg-white px-2.5 py-1.5 rounded-xl border border-purple-200 shadow-2xs">
-                  <span className="text-[10px] text-purple-700 font-bold uppercase block">
-                    50% Share
-                  </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAdjustingStudent(student);
+                    setNewSharePercent(appliedPercent);
+                  }}
+                  className="text-right bg-white px-2.5 py-1.5 rounded-xl border border-purple-200 shadow-2xs hover:bg-purple-50 active:scale-95 transition-all"
+                  title="Teacher share % kam ya zyada karein"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span className="text-[10px] text-purple-700 font-bold uppercase block">
+                      {appliedPercent}% Share
+                    </span>
+                    <span className="text-[9px] text-purple-600 font-bold">✎</span>
+                  </div>
                   <span className="text-sm font-black text-purple-900">
-                    {formatCurrency(teacher50Share)}
+                    {formatCurrency(teacherShare)}
                   </span>
-                </div>
+                </button>
               </div>
 
               {/* Fee Bar */}
@@ -548,6 +603,185 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
           >
             + Naya Admission
           </button>
+        </div>
+      )}
+
+      {/* Quick Teacher Share % Adjustment Modal */}
+      {adjustingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between bg-gradient-to-r from-purple-900 to-indigo-900 px-5 py-4 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500 text-white font-black text-sm">
+                  %
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Teacher Share % Badlein</h3>
+                  <p className="text-[11px] text-purple-200">
+                    {adjustingStudent.fullName} ({adjustingStudent.rollNo})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdjustingStudent(null)}
+                className="rounded-lg p-1 text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              {/* Student & Teacher Info Card */}
+              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Course & Total Fee:</span>
+                  <span className="font-bold text-slate-900">
+                    {adjustingStudent.courseTitle || 'Course'} • {formatCurrency(adjustingStudent.totalFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                  <span className="text-purple-700 font-semibold">Teacher:</span>
+                  <span className="font-bold text-purple-950">
+                    {adjustingStudent.teacherName || 'Academy Direct'} {adjustingStudent.teacherPhone ? `(${adjustingStudent.teacherPhone})` : ''}
+                  </span>
+                </div>
+              </div>
+
+              {/* Share Adjustment Controls */}
+              <div className="rounded-xl bg-purple-50/80 border-2 border-purple-200 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-slate-800 text-xs">
+                      Teacher Percentage Share:
+                    </label>
+                    <p className="text-[10px] text-purple-700">Apne hisaab se kam ya zyada karein</p>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-purple-300 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setNewSharePercent((p) => Math.max(0, p - 5))}
+                      className="h-7 w-7 rounded-lg bg-purple-100 text-purple-900 font-bold hover:bg-purple-200 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Kam"
+                    >
+                      -5%
+                    </button>
+                    <div className="flex items-center px-1.5">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={newSharePercent}
+                        onChange={(e) => {
+                          const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
+                          setNewSharePercent(val);
+                        }}
+                        className="w-10 text-center font-black text-sm text-purple-950 focus:outline-none"
+                      />
+                      <span className="font-bold text-purple-900 text-xs">%</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNewSharePercent((p) => Math.min(100, p + 5))}
+                      className="h-7 w-7 rounded-lg bg-purple-600 text-white font-bold hover:bg-purple-700 active:scale-95 text-xs flex items-center justify-center"
+                      title="5% Zyada"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {[20, 30, 40, 50, 60, 70, 80, 100].map((pct) => (
+                    <button
+                      key={pct}
+                      type="button"
+                      onClick={() => setNewSharePercent(pct)}
+                      className={`rounded-lg px-2 py-1 text-[11px] font-bold transition-all ${
+                        newSharePercent === pct
+                          ? 'bg-purple-700 text-white shadow-xs scale-105 ring-2 ring-purple-300'
+                          : 'bg-white text-slate-700 border border-purple-200 hover:bg-purple-100'
+                      }`}
+                    >
+                      {pct}% {pct === 50 ? '(Standard)' : ''}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Slider */}
+                <div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={newSharePercent}
+                    onChange={(e) => setNewSharePercent(Number(e.target.value))}
+                    className="w-full accent-purple-600 cursor-pointer h-2 bg-purple-200 rounded-lg"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 font-medium px-0.5 mt-0.5">
+                    <span>0% (Academy)</span>
+                    <span className="text-purple-700 font-bold">50% (Standard)</span>
+                    <span>100% (Teacher)</span>
+                  </div>
+                </div>
+
+                {/* Live Amount Preview */}
+                <div className="rounded-lg bg-white p-3 border border-purple-200 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-slate-500 text-[10px] block font-bold">TEACHER KO MILENGE</span>
+                    <span className="text-base font-black text-purple-900">
+                      {formatCurrency(
+                        Math.round(
+                          (((adjustingStudent.paidAmount > 0 ? adjustingStudent.paidAmount : adjustingStudent.totalFee) || 0) *
+                            newSharePercent) /
+                            100
+                        )
+                      )}
+                    </span>
+                    <span className="text-[10px] text-purple-700 block font-semibold">({newSharePercent}% share)</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-500 text-[10px] block font-bold">ACADEMY BACHAT</span>
+                    <span className="text-base font-black text-slate-800">
+                      {formatCurrency(
+                        Math.max(
+                          0,
+                          ((adjustingStudent.paidAmount > 0 ? adjustingStudent.paidAmount : adjustingStudent.totalFee) || 0) -
+                            Math.round(
+                              (((adjustingStudent.paidAmount > 0 ? adjustingStudent.paidAmount : adjustingStudent.totalFee) || 0) *
+                                newSharePercent) /
+                                100
+                            )
+                        )
+                      )}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block font-semibold">({100 - newSharePercent}%)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setAdjustingStudent(null)}
+                  className="rounded-xl px-4 py-2 font-medium text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAdjustedPercent}
+                  className="rounded-xl bg-purple-700 px-5 py-2 font-bold text-white shadow-md hover:bg-purple-800 active:scale-95 transition-all"
+                >
+                  Save Karein ({newSharePercent}%)
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

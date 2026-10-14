@@ -279,6 +279,7 @@ export default function App() {
     let teacherId = savedStudent.teacherId;
     const tName = savedStudent.teacherName?.trim();
     const tPhone = savedStudent.teacherPhone?.trim();
+    const sharePercent = savedStudent.teacherSharePercent ?? 50;
 
     if (tName) {
       const existingTeacher = teachers.find(
@@ -297,14 +298,14 @@ export default function App() {
           );
         }
       } else {
-        // Auto-create teacher so they immediately show up in Teachers Salary list!
+        // Auto-create teacher with the specified share percentage!
         const newTeacher: Teacher = {
           id: `tch-${Date.now()}`,
           name: tName,
           phone: tPhone || '',
           specialty: 'Academy Instructor',
           upiOrBank: '',
-          sharePercentage: 50,
+          sharePercentage: sharePercent,
           joinDate: new Date().toISOString().split('T')[0],
           avatarColor: 'from-purple-500 to-indigo-600',
         };
@@ -313,13 +314,16 @@ export default function App() {
       }
     }
 
-    // Set updated teacherId on student record
+    const effectiveFee =
+      (initialPayment && initialPayment.amount > 0 ? initialPayment.amount : savedStudent.totalFee) || 0;
+    const calculatedShare = Math.round((effectiveFee * sharePercent) / 100);
+
+    // Set updated teacherId and share on student record
     const updatedStudent: Student = {
       ...savedStudent,
       teacherId: teacherId || savedStudent.teacherId,
-      teacherShareAmount: Math.round(
-        ((initialPayment && initialPayment.amount > 0 ? initialPayment.amount : savedStudent.totalFee) || 0) * 0.5
-      ),
+      teacherSharePercent: sharePercent,
+      teacherShareAmount: calculatedShare,
     };
 
     setStudents((prev) => {
@@ -334,7 +338,7 @@ export default function App() {
 
     if (initialPayment && initialPayment.amount > 0) {
       const selectedCourse = courses.find((c) => c.id === updatedStudent.courseId);
-      const teacherShareAmount = Math.round(initialPayment.amount * 0.5); // 50% Auto Share
+      const teacherShareAmount = Math.round(initialPayment.amount * (sharePercent / 100));
 
       const newPayment: PaymentRecord = {
         id: `pay-${Date.now()}`,
@@ -347,6 +351,7 @@ export default function App() {
         receiptNo: `PRA-REC-${Math.floor(100 + Math.random() * 900)}`,
         remarks: initialPayment.remarks || 'Admission enrollment fee',
         teacherId: teacherId || selectedCourse?.teacherId || '',
+        teacherSharePercent: sharePercent,
         teacherShareAmount,
       };
 
@@ -355,7 +360,7 @@ export default function App() {
 
     showToast(
       isNew
-        ? `${updatedStudent.fullName} ka admission ho gaya! 50% teacher share (${tName || 'Teacher'}) add ho gaya.`
+        ? `${updatedStudent.fullName} ka admission ho gaya! ${sharePercent}% teacher share (${tName || 'Teacher'}) add ho gaya.`
         : `${updatedStudent.fullName} ki details update ho gayi!`
     );
   };

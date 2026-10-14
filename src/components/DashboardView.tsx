@@ -79,7 +79,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
               Dance, Meditation, Acting, Guitar aur Sabhi Courses Ka Complete Management,
-              WhatsApp Reminders, aur 50% Automatic Teacher Salary Distribution.
+              WhatsApp Reminders, aur Customizable Teacher Salary Share (% Apne Hisaab Se Kam / Zyada).
             </p>
           </div>
 
@@ -182,7 +182,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">
-              Teacher Salary (50%)
+              Teacher Salary Share (% Hisaab)
             </span>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-800">
               <Wallet className="h-4 w-4" />
@@ -389,8 +389,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                      50% Share
+                    <span className="rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 border border-purple-200">
+                      {summary.teacher.sharePercentage || 50}% Share
                     </span>
                   </div>
 
@@ -403,7 +403,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                        50% Share
+                        Teacher Share
                       </span>
                       <span className="font-bold text-emerald-700">
                         {formatCurrency(summary.totalCalculatedShare)}
