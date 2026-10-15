@@ -130,6 +130,10 @@ export interface PayoutCycleTransaction {
   teacherName: string;
   teacherSharePercent: number;
   teacherShareAmount: number;
+  managementSharePercent: number; // 10%
+  managementShareAmount: number;
+  officeSharePercent: number; // 40%
+  officeShareAmount: number;
   collectionCycle: '1-15' | '16-end';
   collectionCycleLabel: string; // "1 se 15 [Month] ki Fees" or "16 se 31 [Month] ki Fees"
   targetPayoutDate: string; // YYYY-MM-DD
@@ -138,6 +142,42 @@ export interface PayoutCycleTransaction {
   cycleKey: string; // e.g. "2026-10-30" or "2026-11-15"
   cycleName: string;
   isPayoutSettled?: boolean;
+}
+
+export interface AcademyFeeSplitSummary {
+  totalCollected: number;
+  totalPendingDues: number;
+  totalExpectedRevenue: number;
+  
+  // 3-Way Split:
+  // 1. Teacher (50% default)
+  teacherShareAmount: number;
+  teacherPaidAmount: number;
+  teacherBalanceDue: number;
+  
+  // 2. Management (10% fixed)
+  managementShareAmount: number;
+  managementPercent: number;
+  
+  // 3. Office Fund (40% fixed)
+  officeShareAmount: number;
+  officePercent: number;
+
+  // Cycle 1 (1st to 15th fees -> paid 30th)
+  cycle1_15: {
+    collectedFees: number;
+    teacherShareDue30th: number;
+    managementShare: number;
+    officeShare: number;
+  };
+
+  // Cycle 2 (16th to 31st fees -> paid 15th next month)
+  cycle16_end: {
+    collectedFees: number;
+    teacherShareDue15th: number;
+    managementShare: number;
+    officeShare: number;
+  };
 }
 
 export interface TeacherCycleSchedule {
@@ -167,6 +207,33 @@ export interface BiMonthlySalarySchedule {
   teacherSchedules: TeacherCycleSchedule[];
   allTransactions: PayoutCycleTransaction[];
   availableCycles: { key: string; label: string; payoutDate: string; count: number; totalAmount: number }[];
+  academySplit: AcademyFeeSplitSummary;
+}
+
+/**
+ * Super Simple 3-Way Fee Split Calculator (Teacher 50%, Management 10%, Office 40%)
+ * Easy enough that a 15-year old child or anyone can use and understand instantly!
+ */
+export function calculateFeeBreakdown(amount: number, customTeacherPercent: number = 50) {
+  const safeAmount = Math.max(0, Number(amount) || 0);
+  const teacherPercent = customTeacherPercent || 50;
+  const managementPercent = 10;
+  const officePercent = Math.max(0, 100 - teacherPercent - managementPercent);
+
+  const teacherAmount = Math.round(safeAmount * (teacherPercent / 100));
+  const managementAmount = Math.round(safeAmount * (managementPercent / 100));
+  const officeAmount = Math.max(0, safeAmount - teacherAmount - managementAmount);
+
+  return {
+    amount: safeAmount,
+    teacherPercent,
+    teacherAmount,
+    managementPercent,
+    managementAmount,
+    officePercent,
+    officeAmount,
+    formulaText: `Har ₹1,000 me: ₹${(1000 * teacherPercent) / 100} Teacher + ₹100 Management + ₹${(1000 * officePercent) / 100} Office`,
+  };
 }
 
 /**
@@ -341,6 +408,12 @@ export function calculateBiMonthlySalarySchedule(
         ? p.teacherShareAmount
         : Math.round(p.amount * (effectivePercent / 100));
 
+    // 10% Management Share & 40% Office Share (As explicitly instructed)
+    const managementSharePercent = 10;
+    const managementShareAmount = Math.round(p.amount * 0.10);
+    const officeSharePercent = Math.max(0, 100 - effectivePercent - managementSharePercent);
+    const officeShareAmount = Math.max(0, p.amount - teacherShareAmount - managementShareAmount);
+
     const cycleInfo = getPayoutCycleForDate(p.date);
 
     allTransactions.push({
@@ -355,6 +428,10 @@ export function calculateBiMonthlySalarySchedule(
       teacherName: teacher?.name || student?.teacherName || 'Instructor',
       teacherSharePercent: effectivePercent,
       teacherShareAmount,
+      managementSharePercent,
+      managementShareAmount,
+      officeSharePercent,
+      officeShareAmount,
       collectionCycle: cycleInfo.collectionCycle,
       collectionCycleLabel: cycleInfo.collectionCycleLabel,
       targetPayoutDate: cycleInfo.targetPayoutDate,
@@ -388,6 +465,11 @@ export function calculateBiMonthlySalarySchedule(
         teacher?.sharePercentage ??
         50;
       const shareEarned = Math.round(effectiveFee * (effectivePercent / 100));
+      const managementSharePercent = 10;
+      const managementShareAmount = Math.round(effectiveFee * 0.10);
+      const officeSharePercent = Math.max(0, 100 - effectivePercent - managementSharePercent);
+      const officeShareAmount = Math.max(0, effectiveFee - shareEarned - managementShareAmount);
+
       const cycleInfo = getPayoutCycleForDate(student.enrollmentDate);
 
       allTransactions.push({
@@ -402,6 +484,10 @@ export function calculateBiMonthlySalarySchedule(
         teacherName: teacher?.name || student.teacherName || 'Instructor',
         teacherSharePercent: effectivePercent,
         teacherShareAmount: shareEarned,
+        managementSharePercent,
+        managementShareAmount,
+        officeSharePercent,
+        officeShareAmount,
         collectionCycle: cycleInfo.collectionCycle,
         collectionCycleLabel: cycleInfo.collectionCycleLabel,
         targetPayoutDate: cycleInfo.targetPayoutDate,
@@ -487,6 +573,46 @@ export function calculateBiMonthlySalarySchedule(
 
   const availableCycles = Array.from(cycleMap.values()).sort((a, b) => b.key.localeCompare(a.key));
 
+  // Compute 3-way Academy Fee Split (50% Teacher, 10% Management, 40% Office)
+  const totalCollected = allTransactions.reduce((sum, tx) => sum + tx.feeAmount, 0);
+  const totalPendingDues = students.reduce((sum, s) => sum + Math.max(0, s.totalFee - s.paidAmount), 0);
+  const totalExpectedRevenue = totalCollected + totalPendingDues;
+
+  const teacherShareAmount = allTransactions.reduce((sum, tx) => sum + tx.teacherShareAmount, 0);
+  const managementShareAmount = allTransactions.reduce((sum, tx) => sum + tx.managementShareAmount, 0);
+  const officeShareAmount = allTransactions.reduce((sum, tx) => sum + tx.officeShareAmount, 0);
+
+  const teacherPaidAmount = payouts.reduce((sum, p) => sum + p.amount, 0);
+  const teacherBalanceDue = Math.max(0, teacherShareAmount - teacherPaidAmount);
+
+  const txns1_15 = allTransactions.filter((tx) => tx.collectionCycle === '1-15');
+  const txns16_end = allTransactions.filter((tx) => tx.collectionCycle === '16-end');
+
+  const academySplit: AcademyFeeSplitSummary = {
+    totalCollected,
+    totalPendingDues,
+    totalExpectedRevenue,
+    teacherShareAmount,
+    teacherPaidAmount,
+    teacherBalanceDue,
+    managementShareAmount,
+    managementPercent: 10,
+    officeShareAmount,
+    officePercent: 40,
+    cycle1_15: {
+      collectedFees: txns1_15.reduce((sum, tx) => sum + tx.feeAmount, 0),
+      teacherShareDue30th: txns1_15.reduce((sum, tx) => sum + tx.teacherShareAmount, 0),
+      managementShare: txns1_15.reduce((sum, tx) => sum + tx.managementShareAmount, 0),
+      officeShare: txns1_15.reduce((sum, tx) => sum + tx.officeShareAmount, 0),
+    },
+    cycle16_end: {
+      collectedFees: txns16_end.reduce((sum, tx) => sum + tx.feeAmount, 0),
+      teacherShareDue15th: txns16_end.reduce((sum, tx) => sum + tx.teacherShareAmount, 0),
+      managementShare: txns16_end.reduce((sum, tx) => sum + tx.managementShareAmount, 0),
+      officeShare: txns16_end.reduce((sum, tx) => sum + tx.officeShareAmount, 0),
+    },
+  };
+
   return {
     next15thTotalDue,
     next30thTotalDue,
@@ -496,5 +622,6 @@ export function calculateBiMonthlySalarySchedule(
     teacherSchedules,
     allTransactions,
     availableCycles,
+    academySplit,
   };
 }

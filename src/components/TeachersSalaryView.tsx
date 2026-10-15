@@ -21,6 +21,10 @@ import {
   ChevronRight,
   ArrowUpRight,
   HelpCircle,
+  Building2,
+  Briefcase,
+  Layers,
+  Calculator,
 } from 'lucide-react';
 import {
   Teacher,
@@ -33,6 +37,7 @@ import {
 import {
   calculateTeacherSalaries,
   calculateBiMonthlySalarySchedule,
+  calculateFeeBreakdown,
   formatCurrency,
   formatDate,
   TeacherSalarySummary,
@@ -55,7 +60,7 @@ interface TeachersSalaryViewProps {
   onUpdateStudentShare?: (studentId: string, newPercent: number) => void;
 }
 
-export type SalaryDesktopTab = 'schedule' | 'teachers' | 'history';
+export type SalaryDesktopTab = 'schedule' | 'batwara' | 'teachers' | 'history';
 
 export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
   teachers,
@@ -421,35 +426,52 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
         </div>
       </div>
 
-      {/* Secondary Aggregate Summary Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl bg-white p-4 border border-slate-200/80 shadow-xs">
+      {/* Secondary Aggregate Summary Bar - 4 Part Clean Overview */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 rounded-2xl bg-white p-4 border border-slate-200/80 shadow-xs">
+        {/* Total Collected */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
             <TrendingUp className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <span className="text-[11px] uppercase font-bold text-slate-400 block">Kul Teacher Share</span>
-            <span className="text-lg font-black text-slate-900">{formatCurrency(totalSalariesEarned)}</span>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Kul Jama Fees</span>
+            <span className="text-base sm:text-lg font-black text-slate-900">{formatCurrency(schedule.academySplit.totalCollected)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-4">
+        {/* Teacher Share 50% */}
+        <div className="flex items-center gap-3 border-l border-slate-100 pl-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+            <Wallet className="h-5 w-5 text-purple-600" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-purple-700 block">Teacher Share (50%)</span>
+            <span className="text-base sm:text-lg font-black text-purple-900">{formatCurrency(schedule.academySplit.teacherShareAmount)}</span>
+            <span className="text-[10px] text-slate-400 block">Baki: {formatCurrency(totalPendingPayout)}</span>
+          </div>
+        </div>
+
+        {/* Management Share 10% */}
+        <div className="flex items-center gap-3 border-l border-slate-100 pl-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
+            <Briefcase className="h-5 w-5 text-orange-600" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-orange-700 block">Management (10%)</span>
+            <span className="text-base sm:text-lg font-black text-orange-900">{formatCurrency(schedule.academySplit.managementShareAmount)}</span>
+            <span className="text-[10px] text-slate-400 block">10% Fixed Hissa</span>
+          </div>
+        </div>
+
+        {/* Office Share 40% */}
+        <div className="flex items-center gap-3 border-l border-slate-100 pl-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-            <CheckCircle2 className="h-5 w-5 text-blue-600" />
+            <Building2 className="h-5 w-5 text-blue-600" />
           </div>
           <div>
-            <span className="text-[11px] uppercase font-bold text-slate-400 block">Diya Gaya Vetan (Paid)</span>
-            <span className="text-lg font-black text-blue-700">{formatCurrency(totalDisbursed)}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-            <Wallet className="h-5 w-5 text-amber-600" />
-          </div>
-          <div>
-            <span className="text-[11px] uppercase font-bold text-slate-400 block">Baki Kul Balance</span>
-            <span className="text-lg font-black text-amber-700">{formatCurrency(totalPendingPayout)}</span>
+            <span className="text-[10px] uppercase font-bold text-blue-700 block">Office Fund (40%)</span>
+            <span className="text-base sm:text-lg font-black text-blue-900">{formatCurrency(schedule.academySplit.officeShareAmount)}</span>
+            <span className="text-[10px] text-slate-400 block">40% Academy Fund</span>
           </div>
         </div>
       </div>
@@ -465,9 +487,24 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
           }`}
         >
           <Calendar className="h-4 w-4" />
-          <span>📅 15 & 30 Tarikh Salary Schedule (Automatic Hisaab)</span>
+          <span>📅 15 & 30 Tarikh Salary Schedule (Automatic)</span>
           <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px]">
             {schedule.teacherSchedules.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('batwara')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            activeTab === 'batwara'
+              ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>🏢 Fees Batwara (50% Teacher + 10% Mgmt + 40% Office)</span>
+          <span className="rounded-full bg-orange-100 text-orange-900 font-bold px-2 py-0.5 text-[10px]">
+            100% Hisaab
           </span>
         </button>
 
@@ -808,10 +845,16 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                       <th className="py-3 px-3">Course</th>
                       <th className="py-3 px-3">Fee Paid & Date</th>
                       <th className="py-3 px-3">Collection Period</th>
-                      <th className="py-3 px-3 text-center">🎯 Assigned Payout Date</th>
+                      <th className="py-3 px-3 text-center">🎯 Target Payout Date</th>
                       <th className="py-3 px-3">Teacher</th>
-                      <th className="py-3 px-3 text-right bg-purple-50/60 font-bold text-purple-950">
-                        Teacher Share (% Hisaab)
+                      <th className="py-3 px-2 text-right bg-purple-50/60 font-bold text-purple-950">
+                        🟣 Teacher (50%)
+                      </th>
+                      <th className="py-3 px-2 text-right bg-orange-50/60 font-bold text-orange-950">
+                        🟠 Mgmt (10%)
+                      </th>
+                      <th className="py-3 px-2 text-right bg-blue-50/60 font-bold text-blue-950">
+                        🔵 Office (40%)
                       </th>
                     </tr>
                   </thead>
@@ -860,8 +903,8 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                         <td className="py-3 px-3">
                           <div className="font-bold text-slate-800">{tx.teacherName}</div>
                         </td>
-                        <td className="py-3 px-3 text-right bg-purple-50/30">
-                          <div className="text-sm font-black text-emerald-700">
+                        <td className="py-3 px-2 text-right bg-purple-50/30">
+                          <div className="text-xs sm:text-sm font-black text-purple-900">
                             {formatCurrency(tx.teacherShareAmount)}
                           </div>
                           <button
@@ -879,8 +922,20 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                             title="Is student ka % hisaab kam ya zyada karein"
                           >
                             <span>{tx.teacherSharePercent}%</span>
-                            <span className="text-purple-600">✎ Badlein</span>
+                            <span className="text-purple-600">✎</span>
                           </button>
+                        </td>
+                        <td className="py-3 px-2 text-right bg-orange-50/30">
+                          <div className="text-xs sm:text-sm font-black text-orange-900">
+                            {formatCurrency(tx.managementShareAmount)}
+                          </div>
+                          <span className="text-[10px] text-orange-700 font-bold">10% Mgmt</span>
+                        </td>
+                        <td className="py-3 px-2 text-right bg-blue-50/30">
+                          <div className="text-xs sm:text-sm font-black text-blue-900">
+                            {formatCurrency(tx.officeShareAmount)}
+                          </div>
+                          <span className="text-[10px] text-blue-700 font-bold">40% Office</span>
                         </td>
                       </tr>
                     ))}
@@ -890,13 +945,23 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
                       <td colSpan={2} className="py-3 px-3 text-slate-600">
                         Total ({filteredTransactions.length} items)
                       </td>
-                      <td className="py-3 px-3 text-slate-900">
+                      <td className="py-3 px-3 text-slate-900 font-black">
                         {formatCurrency(filteredTransactions.reduce((sum, tx) => sum + tx.feeAmount, 0))}
                       </td>
                       <td colSpan={3} />
-                      <td className="py-3 px-3 text-right text-emerald-800 bg-purple-100/50 font-black text-sm">
+                      <td className="py-3 px-2 text-right text-purple-900 bg-purple-100/50 font-black">
                         {formatCurrency(
                           filteredTransactions.reduce((sum, tx) => sum + tx.teacherShareAmount, 0)
+                        )}
+                      </td>
+                      <td className="py-3 px-2 text-right text-orange-900 bg-orange-100/50 font-black">
+                        {formatCurrency(
+                          filteredTransactions.reduce((sum, tx) => sum + tx.managementShareAmount, 0)
+                        )}
+                      </td>
+                      <td className="py-3 px-2 text-right text-blue-900 bg-blue-100/50 font-black">
+                        {formatCurrency(
+                          filteredTransactions.reduce((sum, tx) => sum + tx.officeShareAmount, 0)
                         )}
                       </td>
                     </tr>
@@ -908,7 +973,371 @@ export const TeachersSalaryView: React.FC<TeachersSalaryViewProps> = ({
         </div>
       )}
 
-      {/* TAB 2: TEACHER PROFILES & 50% SHARE SETTINGS (MASTER-DETAIL VIEW) */}
+      {/* TAB: 100% FEES BATWARA (50% TEACHER + 10% MANAGEMENT + 40% OFFICE) */}
+      {activeTab === 'batwara' && (
+        <div className="space-y-6">
+          {/* Hero Banner */}
+          <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-orange-50 via-white to-purple-50 p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-900 mb-1">
+                  <Layers className="h-3.5 w-3.5 text-orange-600" />
+                  <span>Academy Central Rule • 100% Transparent Batwara</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">
+                  Sabhi Fees Ka Batwara: 50% Teacher + 10% Management + 40% Office
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mt-1">
+                  Jaise hi koi admission ya fees aati hai, application automatic 3 hisse kar deti hai:
+                  Teacher ka 50% (jo 15 ya 30 tarikh ko diya jata hai), Management ka 10%, aur Office ka 40%.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-3.5 text-center shadow-xs self-start sm:self-auto min-w-[140px]">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Kul Jama Fees</span>
+                <span className="text-xl font-black text-slate-900">{formatCurrency(schedule.academySplit.totalCollected)}</span>
+                <span className="text-[10px] text-emerald-700 font-bold block mt-0.5">100% Received</span>
+              </div>
+            </div>
+
+            {/* Visual 3-Way Proportion Bar */}
+            <div className="space-y-2 pt-2">
+              <div className="h-4 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner border border-slate-200">
+                <div style={{ width: '50%' }} className="bg-purple-600 h-full" title="50% Teacher Share" />
+                <div style={{ width: '10%' }} className="bg-orange-500 h-full" title="10% Management Share" />
+                <div style={{ width: '40%' }} className="bg-blue-600 h-full" title="40% Office Share" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* 1. Teacher Share Card */}
+                <div className="rounded-2xl border-2 border-purple-200 bg-purple-50/70 p-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-full bg-purple-600 inline-block" />
+                      Teacher Share (50%)
+                    </span>
+                    <span className="text-[10px] font-bold bg-purple-200 text-purple-900 px-2 py-0.5 rounded-full">
+                      50% Share
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-purple-950 pt-1">
+                    {formatCurrency(schedule.academySplit.teacherShareAmount)}
+                  </div>
+                  <p className="text-[11px] text-purple-800">
+                    Diya gaya: {formatCurrency(schedule.academySplit.teacherPaidAmount)} • Baki: {formatCurrency(schedule.academySplit.teacherBalanceDue)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 pt-1 border-t border-purple-100">
+                    🗓️ 1-15 ki fees 30 tarikh ko, aur 16-31 ki fees agli 15 tarikh ko di jayegi.
+                  </p>
+                </div>
+
+                {/* 2. Management Share Card */}
+                <div className="rounded-2xl border-2 border-orange-200 bg-orange-50/70 p-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-orange-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-full bg-orange-500 inline-block" />
+                      Management (10%)
+                    </span>
+                    <span className="text-[10px] font-bold bg-orange-200 text-orange-900 px-2 py-0.5 rounded-full">
+                      10% Fixed
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-orange-950 pt-1">
+                    {formatCurrency(schedule.academySplit.managementShareAmount)}
+                  </div>
+                  <p className="text-[11px] text-orange-800">
+                    Har student fee me se 10% hissa management ka alag nikala jata hai.
+                  </p>
+                  <p className="text-[10px] text-slate-500 pt-1 border-t border-orange-100">
+                    💼 Academy management, supervision aur operation fund.
+                  </p>
+                </div>
+
+                {/* 3. Office Share Card */}
+                <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/70 p-4 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                      Office Fund (40%)
+                    </span>
+                    <span className="text-[10px] font-bold bg-blue-200 text-blue-900 px-2 py-0.5 rounded-full">
+                      40% Academy
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-blue-950 pt-1">
+                    {formatCurrency(schedule.academySplit.officeShareAmount)}
+                  </div>
+                  <p className="text-[11px] text-blue-800">
+                    Har student fee me se 40% hissa office aur academy me bachta hai.
+                  </p>
+                  <p className="text-[10px] text-slate-500 pt-1 border-t border-blue-100">
+                    🏢 Academy rent, electricity bills, infrastructure aur bachath.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* TWO BI-MONTHLY COLLECTION CYCLES & THEIR 3-WAY SPLIT */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-purple-600" />
+              <span>Bi-Monthly Cycles Ka 3-Way Batwara (15 & 30 Tarikh)</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cycle 1: 1 se 15 Tarikh Fees */}
+              <div className="rounded-2xl border-2 border-amber-200 bg-white p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider block">
+                      Cycle 1: 1 se 15 Tarikh Ki Fees
+                    </span>
+                    <h4 className="text-base font-black text-slate-900">
+                      🎯 Payout Target: 30 Tarikh ko
+                    </h4>
+                  </div>
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+                    30th Cycle
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs py-1">
+                  <span className="text-slate-500 font-medium">1-15 Dauraan Kul Jama Fees:</span>
+                  <span className="text-base font-black text-slate-900">
+                    {formatCurrency(schedule.academySplit.cycle1_15.collectedFees)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                  <div className="rounded-xl bg-purple-50 p-2 border border-purple-200">
+                    <span className="text-[10px] text-purple-800 font-bold block">🟣 Teacher (50%)</span>
+                    <span className="text-sm font-black text-purple-950">
+                      {formatCurrency(schedule.academySplit.cycle1_15.teacherShareDue30th)}
+                    </span>
+                    <span className="text-[9px] text-purple-700 block">30 ko Dena Hai</span>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 p-2 border border-orange-200">
+                    <span className="text-[10px] text-orange-800 font-bold block">🟠 Mgmt (10%)</span>
+                    <span className="text-sm font-black text-orange-950">
+                      {formatCurrency(schedule.academySplit.cycle1_15.managementShare)}
+                    </span>
+                    <span className="text-[9px] text-orange-700 block">Management Hissa</span>
+                  </div>
+                  <div className="rounded-xl bg-blue-50 p-2 border border-blue-200">
+                    <span className="text-[10px] text-blue-800 font-bold block">🔵 Office (40%)</span>
+                    <span className="text-sm font-black text-blue-950">
+                      {formatCurrency(schedule.academySplit.cycle1_15.officeShare)}
+                    </span>
+                    <span className="text-[9px] text-blue-700 block">Office Bachath</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 italic">
+                  💡 Niyam: 1st se 15th ke beech jo bhi admission honge, unka 50% teacher share 30 tarikh ko diya jayega.
+                </p>
+              </div>
+
+              {/* Cycle 2: 16 se 31 Tarikh Fees */}
+              <div className="rounded-2xl border-2 border-purple-200 bg-white p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-purple-800 tracking-wider block">
+                      Cycle 2: 16 se 31 Tarikh Ki Fees
+                    </span>
+                    <h4 className="text-base font-black text-slate-900">
+                      🎯 Payout Target: Agli 15 Tarikh ko
+                    </h4>
+                  </div>
+                  <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-bold text-purple-900">
+                    15th Cycle
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs py-1">
+                  <span className="text-slate-500 font-medium">16-31 Dauraan Kul Jama Fees:</span>
+                  <span className="text-base font-black text-slate-900">
+                    {formatCurrency(schedule.academySplit.cycle16_end.collectedFees)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                  <div className="rounded-xl bg-purple-50 p-2 border border-purple-200">
+                    <span className="text-[10px] text-purple-800 font-bold block">🟣 Teacher (50%)</span>
+                    <span className="text-sm font-black text-purple-950">
+                      {formatCurrency(schedule.academySplit.cycle16_end.teacherShareDue15th)}
+                    </span>
+                    <span className="text-[9px] text-purple-700 block">15 ko Dena Hai</span>
+                  </div>
+                  <div className="rounded-xl bg-orange-50 p-2 border border-orange-200">
+                    <span className="text-[10px] text-orange-800 font-bold block">🟠 Mgmt (10%)</span>
+                    <span className="text-sm font-black text-orange-950">
+                      {formatCurrency(schedule.academySplit.cycle16_end.managementShare)}
+                    </span>
+                    <span className="text-[9px] text-orange-700 block">Management Hissa</span>
+                  </div>
+                  <div className="rounded-xl bg-blue-50 p-2 border border-blue-200">
+                    <span className="text-[10px] text-blue-800 font-bold block">🔵 Office (40%)</span>
+                    <span className="text-sm font-black text-blue-950">
+                      {formatCurrency(schedule.academySplit.cycle16_end.officeShare)}
+                    </span>
+                    <span className="text-[9px] text-blue-700 block">Office Bachath</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 italic">
+                  💡 Niyam: 16th se 31st ke beech jo bhi admission honge, unka 50% teacher share agli 15 tarikh ko diya jayega.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 15-YEAR-OLD CHILD FRIENDLY EXPLAINER BOX */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500 text-slate-950 font-bold">
+                <HelpCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  15 Saal Ka Baccha Bhi Samjhe — Fees Batwara Kaise Kaam Karta Hai:
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Aapko koi hisaab jodna-ghatana nahi padega, sab automatic hota hai:
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <span className="text-lg font-black text-slate-400 block">01</span>
+                <span className="font-bold text-slate-900 block mt-1">Student Fees Deta Hai</span>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Jaise kisi bachche ne ₹2,500 ya ₹5,000 course fees jama ki.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-3">
+                <span className="text-lg font-black text-purple-400 block">02</span>
+                <span className="font-bold text-purple-900 block mt-1">50% Teacher Ka</span>
+                <p className="text-[11px] text-purple-800 mt-0.5">
+                  Adha paisa (50%) seedhe us teacher ke naam par jud jata hai (15 ya 30 tarikh payout).
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-orange-200 bg-orange-50/50 p-3">
+                <span className="text-lg font-black text-orange-400 block">03</span>
+                <span className="font-bold text-orange-900 block mt-1">10% Management Ka</span>
+                <p className="text-[11px] text-orange-800 mt-0.5">
+                  10% hissa management team aur supervision kharch ke liye alag safe ho jata hai.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
+                <span className="text-lg font-black text-blue-400 block">04</span>
+                <span className="font-bold text-blue-900 block mt-1">40% Office Fund</span>
+                <p className="text-[11px] text-blue-800 mt-0.5">
+                  40% hissa academy ke main office me rehta hai (rent, bill aur labh ke liye).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ALL TRANSACTIONS WITH 3-WAY SPLIT LEDGER */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">
+                  Sabhi Admissions & Fees Ka Live Batwara Table
+                </h4>
+                <p className="text-xs text-slate-500">
+                  Ek-ek student ki fee me se kitna Teacher, kitna Management, aur kitna Office ko gaya:
+                </p>
+              </div>
+              <span className="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-bold self-start sm:self-auto">
+                {schedule.allTransactions.length} Total Records
+              </span>
+            </div>
+
+            {schedule.allTransactions.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400 text-xs">
+                Abhi tak koi admission ya fee record nahi hui hai. Naya Admission add karein.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold text-[11px]">
+                    <tr>
+                      <th className="py-3 px-3">Student</th>
+                      <th className="py-3 px-3">Course</th>
+                      <th className="py-3 px-3">Fee Paid</th>
+                      <th className="py-3 px-3">Cycle & Date</th>
+                      <th className="py-3 px-3">Teacher</th>
+                      <th className="py-3 px-2 text-right bg-purple-50 text-purple-950 font-bold">
+                        🟣 Teacher (50%)
+                      </th>
+                      <th className="py-3 px-2 text-right bg-orange-50 text-orange-950 font-bold">
+                        🟠 Mgmt (10%)
+                      </th>
+                      <th className="py-3 px-2 text-right bg-blue-50 text-blue-950 font-bold">
+                        🔵 Office (40%)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {schedule.allTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-50/80">
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-slate-900 block">{tx.studentName}</span>
+                          {tx.studentRollNo && (
+                            <span className="text-[10px] text-slate-400 font-mono">Roll: {tx.studentRollNo}</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-medium text-slate-700">{tx.courseTitle}</td>
+                        <td className="py-3 px-3 font-black text-slate-900">{formatCurrency(tx.feeAmount)}</td>
+                        <td className="py-3 px-3">
+                          <span className="font-semibold text-slate-800 block">{tx.collectionCycleLabel}</span>
+                          <span className="text-[10px] text-slate-400">Payout: {tx.targetPayoutDateLabel}</span>
+                        </td>
+                        <td className="py-3 px-3 font-medium text-slate-800">{tx.teacherName}</td>
+                        <td className="py-3 px-2 text-right bg-purple-50/40 font-black text-purple-900">
+                          {formatCurrency(tx.teacherShareAmount)}
+                        </td>
+                        <td className="py-3 px-2 text-right bg-orange-50/40 font-black text-orange-900">
+                          {formatCurrency(tx.managementShareAmount)}
+                        </td>
+                        <td className="py-3 px-2 text-right bg-blue-50/40 font-black text-blue-900">
+                          {formatCurrency(tx.officeShareAmount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
+                    <tr>
+                      <td colSpan={2} className="py-3 px-3 text-slate-600">
+                        Total Kul Jama ({schedule.allTransactions.length} records)
+                      </td>
+                      <td className="py-3 px-3 text-slate-900 font-black">
+                        {formatCurrency(schedule.academySplit.totalCollected)}
+                      </td>
+                      <td colSpan={2} />
+                      <td className="py-3 px-2 text-right text-purple-900 bg-purple-100/50 font-black">
+                        {formatCurrency(schedule.academySplit.teacherShareAmount)}
+                      </td>
+                      <td className="py-3 px-2 text-right text-orange-900 bg-orange-100/50 font-black">
+                        {formatCurrency(schedule.academySplit.managementShareAmount)}
+                      </td>
+                      <td className="py-3 px-2 text-right text-blue-900 bg-blue-100/50 font-black">
+                        {formatCurrency(schedule.academySplit.officeShareAmount)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {activeTab === 'teachers' && (
         <div>
           {teachers.length === 0 ? (

@@ -70,8 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'teachers' as NavTab,
-      label: 'Teacher Salary (15 & 30 Tarikh)',
-      sublabel: 'Auto 15 & 30 Tarikh Payout Schedule',
+      label: 'Teacher Salary & Fees Batwara',
+      sublabel: '50% Teacher • 10% Mgmt • 40% Office',
       icon: Wallet,
       highlight: true,
     },

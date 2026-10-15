@@ -574,38 +574,53 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               </div>
             </div>
 
-            {/* Live Share Summary Box */}
-            <div className="rounded-xl bg-white p-3 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
-                  <Percent className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-[11px] text-slate-500 font-medium">
-                    Total Fee {formatCurrency(totalFee)} ka {teacherSharePercent}% hisaab:
+            {/* Live 3-Way Fees Batwara Summary Box (Teacher 50%, Management 10%, Office 40%) */}
+            <div className="rounded-xl bg-white p-3 border border-purple-200 space-y-2 shadow-2xs">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                    <Percent className="h-3.5 w-3.5" />
                   </div>
-                  <div className="font-bold text-slate-800 text-xs">
-                    {teacherName ? `${teacherName}` : 'Teacher'} ko milne wali rashi
+                  <div>
+                    <span className="font-bold text-slate-900 block text-xs">
+                      100% Fees Batwara Preview ({formatCurrency(totalFee)}):
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Admission hone ke baad 10% Mgmt, 40% Office aur {teacherSharePercent}% Teacher hissa automatic alag hoga
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="text-right bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 block">
-                    Academy Bachat ({100 - teacherSharePercent}%)
+              <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                <div className="rounded-xl bg-purple-50 p-2 border border-purple-200">
+                  <span className="text-[10px] text-purple-800 font-bold block">
+                    🟣 Teacher ({teacherSharePercent}%)
                   </span>
-                  <span className="text-xs font-bold text-slate-800">
-                    {formatCurrency(Math.max(0, totalFee - calculatedTeacherShare))}
-                  </span>
-                </div>
-                <div className="text-right bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">
-                    Teacher {teacherSharePercent}% Share
-                  </span>
-                  <span className="text-base font-black text-emerald-700">
+                  <span className="text-sm font-black text-purple-950 block">
                     {formatCurrency(calculatedTeacherShare)}
                   </span>
+                  <span className="text-[9px] text-purple-700 block">15/30 Tarikh ko</span>
+                </div>
+
+                <div className="rounded-xl bg-orange-50 p-2 border border-orange-200">
+                  <span className="text-[10px] text-orange-800 font-bold block">
+                    🟠 Management (10%)
+                  </span>
+                  <span className="text-sm font-black text-orange-950 block">
+                    {formatCurrency(Math.round(totalFee * 0.10))}
+                  </span>
+                  <span className="text-[9px] text-orange-700 block">Mgmt Fund</span>
+                </div>
+
+                <div className="rounded-xl bg-blue-50 p-2 border border-blue-200">
+                  <span className="text-[10px] text-blue-800 font-bold block">
+                    🔵 Office ({Math.max(0, 100 - teacherSharePercent - 10)}%)
+                  </span>
+                  <span className="text-sm font-black text-blue-950 block">
+                    {formatCurrency(Math.max(0, totalFee - calculatedTeacherShare - Math.round(totalFee * 0.10)))}
+                  </span>
+                  <span className="text-[9px] text-blue-700 block">Academy Bachath</span>
                 </div>
               </div>
             </div>

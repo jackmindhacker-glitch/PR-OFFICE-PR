@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   GraduationCap,
@@ -14,11 +14,18 @@ import {
   CheckCircle2,
   Calendar,
   Receipt,
+  Building2,
+  Briefcase,
+  Calculator,
+  HelpCircle,
+  BadgePercent,
+  Layers,
 } from 'lucide-react';
 import { Student, Course, PaymentRecord, Teacher, TeacherPayout } from '../types/academy';
 import {
   calculateTeacherSalaries,
   calculateBiMonthlySalarySchedule,
+  calculateFeeBreakdown,
   formatCurrency,
   formatDate,
 } from '../utils/calculations';
@@ -70,6 +77,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const recentPayments = [...payments].slice(-5).reverse();
   const recentStudents = [...students].slice(-4).reverse();
 
+  // Child-friendly 1-click calculator state
+  const [calcInput, setCalcInput] = useState<number>(1000);
+  const quickCalc = calculateFeeBreakdown(calcInput);
+
   return (
     <div className="space-y-6">
       {/* Academy Welcome Banner */}
@@ -78,14 +89,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-300 border border-amber-500/30 mb-2">
               <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>Academy Central Management</span>
+              <span>Academy Central Management • Super Easy Hisaab</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               PR ACADEMY PORTAL
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-xl">
-              Dance, Meditation, Acting, Guitar aur Sabhi Courses Ka Complete Management,
-              WhatsApp Reminders, aur Customizable Teacher Salary Share (% Apne Hisaab Se Kam / Zyada).
+              Dance, Meditation, Acting, Guitar aur Sabhi Courses Ka Management — Sabhi Fees Ka
+              <span className="text-amber-300 font-bold ml-1">50% Teacher</span>,
+              <span className="text-orange-300 font-bold ml-1">10% Management</span>, aur
+              <span className="text-blue-300 font-bold ml-1">40% Office</span> hisaab automatic!
             </p>
           </div>
 
@@ -111,95 +124,330 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-500/15 blur-3xl pointer-events-none" />
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* KPI Cards Grid - All 6 Key Metrics (Admissions, Total Fees, Teacher 50%, Management 10%, Office 40%, Dues) */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
         {/* Total Students */}
         <div
           onClick={() => onNavigate('students')}
-          className="group cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition-all hover:border-amber-400 hover:shadow-md"
+          className="group cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-xs transition-all hover:border-amber-400 hover:shadow-md flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Bachcho Ke Admissions
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              Admissions
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
               <Users className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-slate-900">{students.length}</div>
+          <div className="mt-2 text-xl sm:text-2xl font-black text-slate-900">{students.length}</div>
           <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Enrolled Students</span>
-            <span className="text-amber-700 font-semibold group-hover:underline">
-              View All →
-            </span>
+            <span>Kul Bachche</span>
+            <span className="text-amber-700 font-semibold group-hover:underline">Dekhein →</span>
           </div>
         </div>
 
-        {/* Total Revenue */}
+        {/* Total Revenue (100% Fees) */}
         <div
           onClick={() => onNavigate('payments')}
-          className="group cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition-all hover:border-emerald-400 hover:shadow-md"
+          className="group cursor-pointer rounded-2xl border border-emerald-200 bg-emerald-50/40 p-3.5 sm:p-4 shadow-xs transition-all hover:border-emerald-400 hover:shadow-md flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Kul Jama Fees
+            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
+              Kul Jama Fees (100%)
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-emerald-700">
+          <div className="mt-2 text-xl sm:text-2xl font-black text-emerald-700">
             {formatCurrency(totalRevenue)}
           </div>
-          <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Collected Revenue</span>
-            <span className="text-emerald-700 font-semibold group-hover:underline">
-              Payments →
+          <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-800">
+            <span>Total Collected</span>
+            <span className="font-semibold group-hover:underline">Payments →</span>
+          </div>
+        </div>
+
+        {/* Teacher Share (50%) */}
+        <div
+          onClick={() => onNavigate('teachers')}
+          className="group cursor-pointer rounded-2xl border-2 border-purple-200 bg-purple-50/50 p-3.5 sm:p-4 shadow-xs transition-all hover:border-purple-400 hover:shadow-md flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-purple-900 uppercase tracking-wider">
+              Teacher (50%)
             </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-800">
+              <Wallet className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="mt-2 text-xl sm:text-2xl font-black text-purple-900">
+            {formatCurrency(bimonthlySchedule.academySplit.teacherShareAmount)}
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-purple-800">
+            <span>Baki: {formatCurrency(totalTeacherPendingPayout)}</span>
+            <span className="font-bold underline">15/30 Tarikh →</span>
+          </div>
+        </div>
+
+        {/* Management Share (10%) - AS REQUESTED */}
+        <div
+          onClick={() => onNavigate('teachers')}
+          className="group cursor-pointer rounded-2xl border-2 border-orange-200 bg-orange-50/50 p-3.5 sm:p-4 shadow-xs transition-all hover:border-orange-400 hover:shadow-md flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-orange-900 uppercase tracking-wider">
+              Management (10%)
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-800">
+              <Briefcase className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="mt-2 text-xl sm:text-2xl font-black text-orange-900">
+            {formatCurrency(bimonthlySchedule.academySplit.managementShareAmount)}
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-orange-800">
+            <span>10% Fixed Hissa</span>
+            <span className="font-semibold group-hover:underline">Details →</span>
+          </div>
+        </div>
+
+        {/* Office Share (40%) - AS REQUESTED */}
+        <div
+          onClick={() => onNavigate('teachers')}
+          className="group cursor-pointer rounded-2xl border-2 border-blue-200 bg-blue-50/50 p-3.5 sm:p-4 shadow-xs transition-all hover:border-blue-400 hover:shadow-md flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">
+              Office (40%)
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-800">
+              <Building2 className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="mt-2 text-xl sm:text-2xl font-black text-blue-900">
+            {formatCurrency(bimonthlySchedule.academySplit.officeShareAmount)}
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[11px] text-blue-800">
+            <span>40% Academy Fund</span>
+            <span className="font-semibold group-hover:underline">Details →</span>
           </div>
         </div>
 
         {/* Pending Fees with WhatsApp Reminder notice */}
         <div
           onClick={() => onNavigate('students')}
-          className="group cursor-pointer rounded-2xl border border-rose-200 bg-rose-50/40 p-4 shadow-xs transition-all hover:border-rose-400 hover:shadow-md"
+          className="group cursor-pointer rounded-2xl border border-rose-200 bg-rose-50/40 p-3.5 sm:p-4 shadow-xs transition-all hover:border-rose-400 hover:shadow-md flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-rose-800 uppercase tracking-wider">
-              Pending Fees (Due)
+            <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">
+              Pending Fees
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-rose-600">
+          <div className="mt-2 text-xl sm:text-2xl font-black text-rose-600">
             {formatCurrency(totalPendingDues)}
           </div>
           <div className="mt-1 flex items-center justify-between text-[11px] text-rose-700">
             <span>{studentsWithDues.length} Bachcho Ki Baki</span>
-            <span className="font-bold underline">WhatsApp Reminder →</span>
+            <span className="font-bold underline">WhatsApp →</span>
+          </div>
+        </div>
+      </div>
+
+      {/* FEES BATWARA BOARD & 15-YEAR-OLD CHILD FRIENDLY VISUAL HISAAB (50% Teacher + 10% Management + 40% Office = 100%) */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-800 mb-1">
+              <Layers className="h-3.5 w-3.5 text-amber-600" />
+              <span>100% Fees Batwara Formula (Pura Transparent Hisaab)</span>
+            </div>
+            <h2 className="text-base sm:text-lg font-black text-slate-900">
+              Sabhi Fees Ka Batwara: 50% Teacher + 10% Management + 40% Office
+            </h2>
+            <p className="text-xs text-slate-500">
+              Har admission ya fee payment par yeh hisaab automatic nikalta hai taaki koi confusion na rahe.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-center self-start sm:self-auto">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Kul Jama Fees</span>
+            <span className="text-lg font-black text-slate-900">{formatCurrency(totalRevenue)}</span>
           </div>
         </div>
 
-        {/* Teacher Salary 50% Auto Share */}
-        <div
-          onClick={() => onNavigate('teachers')}
-          className="group cursor-pointer rounded-2xl border border-purple-200 bg-purple-50/40 p-4 shadow-xs transition-all hover:border-purple-400 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">
-              Teacher Salary Share (% Hisaab)
-            </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-800">
-              <Wallet className="h-4 w-4" />
+        {/* Visual 3-Way Color Bar */}
+        <div className="space-y-1.5">
+          <div className="h-4 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
+            <div
+              style={{ width: '50%' }}
+              className="bg-purple-600 h-full transition-all"
+              title="50% Teacher Share"
+            />
+            <div
+              style={{ width: '10%' }}
+              className="bg-orange-500 h-full transition-all"
+              title="10% Management Share"
+            />
+            <div
+              style={{ width: '40%' }}
+              className="bg-blue-600 h-full transition-all"
+              title="40% Office Share"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+            {/* Teacher Share */}
+            <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-purple-900 flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-purple-600 inline-block" />
+                  Teacher Share (50%)
+                </span>
+                <span className="font-extrabold text-purple-950">
+                  {formatCurrency(bimonthlySchedule.academySplit.teacherShareAmount)}
+                </span>
+              </div>
+              <p className="text-[11px] text-purple-800/80 mt-1">
+                📅 15 aur 30 tarikh ke bimonthly payout cycle me diya jata hai
+              </p>
+            </div>
+
+            {/* Management Share */}
+            <div className="rounded-xl border border-orange-200 bg-orange-50/60 p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-orange-900 flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-orange-500 inline-block" />
+                  Management (10%)
+                </span>
+                <span className="font-extrabold text-orange-950">
+                  {formatCurrency(bimonthlySchedule.academySplit.managementShareAmount)}
+                </span>
+              </div>
+              <p className="text-[11px] text-orange-800/80 mt-1">
+                💼 Management supervision aur operations ke liye alag nikalta hai
+              </p>
+            </div>
+
+            {/* Office Share */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-blue-900 flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-full bg-blue-600 inline-block" />
+                  Office Share (40%)
+                </span>
+                <span className="font-extrabold text-blue-950">
+                  {formatCurrency(bimonthlySchedule.academySplit.officeShareAmount)}
+                </span>
+              </div>
+              <p className="text-[11px] text-blue-800/80 mt-1">
+                🏢 Academy rent, bijli, maintenance aur main office fund
+              </p>
             </div>
           </div>
-          <div className="mt-3 text-2xl font-black text-purple-900">
-            {formatCurrency(totalTeacherSalaryEarned)}
+        </div>
+
+        {/* 15-Year-Old Child Friendly Quick Simulator (Super Easy Calculator) */}
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50/70 via-white to-amber-50/30 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-bold text-xs">
+                <Calculator className="h-4 w-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-amber-950 block">
+                  Quick Hisaab Calculator (15 Saal Ka Baccha Bhi Samjhe)
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Koi bhi fees amount daalein ya click karein — hisaab samne aa jayega:
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Chips */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[500, 1000, 2500, 5000, 10000].map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => setCalcInput(amt)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                    calcInput === amt
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-amber-50'
+                  }`}
+                >
+                  ₹{amt.toLocaleString('en-IN')}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="mt-1 flex items-center justify-between text-[11px] text-purple-800">
-            <span>Baki: {formatCurrency(totalTeacherPendingPayout)}</span>
-            <span className="font-bold underline">Hisaab Dekhein →</span>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center">
+            {/* Input */}
+            <div className="sm:col-span-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">
+                Fees Amount (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-sm font-bold text-slate-400">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={calcInput || ''}
+                  onChange={(e) => setCalcInput(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full rounded-xl border border-amber-300 bg-white py-1.5 pl-7 pr-3 text-base font-black text-slate-900 focus:border-amber-500 focus:outline-none shadow-xs"
+                />
+              </div>
+            </div>
+
+            {/* Live Split Badges */}
+            <div className="sm:col-span-3 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl border border-purple-200 bg-purple-50 p-2">
+                <span className="text-[10px] font-bold text-purple-800 uppercase block">
+                  🟣 Teacher (50%)
+                </span>
+                <span className="text-sm sm:text-base font-black text-purple-950">
+                  {formatCurrency(quickCalc.teacherAmount)}
+                </span>
+                <span className="text-[9px] text-purple-700 block">15/30 Tarikh ko</span>
+              </div>
+
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-2">
+                <span className="text-[10px] font-bold text-orange-800 uppercase block">
+                  🟠 Management (10%)
+                </span>
+                <span className="text-sm sm:text-base font-black text-orange-950">
+                  {formatCurrency(quickCalc.managementAmount)}
+                </span>
+                <span className="text-[9px] text-orange-700 block">10% Kharch</span>
+              </div>
+
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-2">
+                <span className="text-[10px] font-bold text-blue-800 uppercase block">
+                  🔵 Office (40%)
+                </span>
+                <span className="text-sm sm:text-base font-black text-blue-950">
+                  {formatCurrency(quickCalc.officeAmount)}
+                </span>
+                <span className="text-[9px] text-blue-700 block">Academy Bachath</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-slate-600 bg-white/80 p-2 rounded-xl border border-amber-100 flex items-center justify-between">
+            <span>
+              💡 <strong>Aasan Niyam:</strong> Agar kisi student se{' '}
+              <strong>{formatCurrency(calcInput)}</strong> fees li: Teacher ko{' '}
+              <strong className="text-purple-700">{formatCurrency(quickCalc.teacherAmount)}</strong>,
+              Management ko{' '}
+              <strong className="text-orange-700">{formatCurrency(quickCalc.managementAmount)}</strong>,
+              aur Office ke paas{' '}
+              <strong className="text-blue-700">{formatCurrency(quickCalc.officeAmount)}</strong> bachenge.
+            </span>
           </div>
         </div>
       </div>
@@ -219,6 +467,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <p className="text-xs text-slate-600 max-w-xl">
               1 se 15 tarikh tak aane wali fees ➔ <strong className="text-amber-900">30 tarikh ko</strong>, aur 16 se 31 tarikh tak aane wali fees ➔ <strong className="text-purple-900">agli 15 tarikh ko</strong> teacher ko di jayegi.
+              (Saath me 10% Management aur 40% Office hissa safe rahta hai).
             </p>
           </div>
 

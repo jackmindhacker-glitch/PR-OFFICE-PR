@@ -180,6 +180,34 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = (props) => {
                   <span>Payment Successfully Recorded</span>
                 </div>
               </div>
+
+              {/* 3-Way Share Allocation (50% Teacher + 10% Management + 40% Office) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs space-y-2">
+                <div className="flex items-center justify-between font-bold text-slate-700 text-[11px] uppercase tracking-wide">
+                  <span>Fees Batwara / Fund Allocation</span>
+                  <span className="text-emerald-700 font-semibold">100% Hisaab</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-purple-50 border border-purple-200 p-1.5">
+                    <span className="text-[10px] text-purple-800 font-bold block">🟣 Teacher (50%)</span>
+                    <span className="text-xs font-black text-purple-950">
+                      {formatCurrency(props.payment.teacherShareAmount > 0 ? props.payment.teacherShareAmount : Math.round(props.payment.amount * 0.50))}
+                    </span>
+                  </div>
+                  <div className="rounded-lg bg-orange-50 border border-orange-200 p-1.5">
+                    <span className="text-[10px] text-orange-800 font-bold block">🟠 Management (10%)</span>
+                    <span className="text-xs font-black text-orange-950">
+                      {formatCurrency(Math.round(props.payment.amount * 0.10))}
+                    </span>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-1.5">
+                    <span className="text-[10px] text-blue-800 font-bold block">🔵 Office (40%)</span>
+                    <span className="text-xs font-black text-blue-950">
+                      {formatCurrency(Math.max(0, props.payment.amount - (props.payment.teacherShareAmount > 0 ? props.payment.teacherShareAmount : Math.round(props.payment.amount * 0.50)) - Math.round(props.payment.amount * 0.10)))}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </>
           ) : (
             <>

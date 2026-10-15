@@ -45,11 +45,12 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
   const [method, setMethod] = useState<PaymentMethod>('UPI');
   const [remarks, setRemarks] = useState('');
 
+  const sharePct = student.teacherSharePercent ?? teacher?.sharePercentage ?? 50;
+
   const handleRecordPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (amount <= 0) return;
 
-    const sharePct = student.teacherSharePercent ?? teacher?.sharePercentage ?? 50;
     const teacherShareAmount = Math.round(amount * (sharePct / 100));
 
     onAddPayment({
@@ -206,12 +207,39 @@ export const StudentPaymentModal: React.FC<StudentPaymentModalProps> = ({
                   />
                 </div>
 
+                {/* Live 3-Way Fee Split Preview */}
+                {amount > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-2.5 text-[11px] space-y-1">
+                    <div className="font-bold text-slate-700 flex items-center justify-between">
+                      <span>Fees Batwara (Agar {formatCurrency(amount)} jama karein):</span>
+                      <span className="text-emerald-700 font-bold">100% Hisaab</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <div className="rounded-lg bg-purple-50 p-1.5 border border-purple-200">
+                        <span className="text-purple-800 font-bold block text-[10px]">🟣 Teacher ({sharePct}%)</span>
+                        <span className="font-black text-purple-950">{formatCurrency(Math.round(amount * (sharePct / 100)))}</span>
+                        <span className="text-[9px] text-purple-700 block">15/30 Tarikh</span>
+                      </div>
+                      <div className="rounded-lg bg-orange-50 p-1.5 border border-orange-200">
+                        <span className="text-orange-800 font-bold block text-[10px]">🟠 Management (10%)</span>
+                        <span className="font-black text-orange-950">{formatCurrency(Math.round(amount * 0.10))}</span>
+                        <span className="text-[9px] text-orange-700 block">Management Fund</span>
+                      </div>
+                      <div className="rounded-lg bg-blue-50 p-1.5 border border-blue-200">
+                        <span className="text-blue-800 font-bold block text-[10px]">🔵 Office (40%)</span>
+                        <span className="font-black text-blue-950">{formatCurrency(Math.max(0, amount - Math.round(amount * (sharePct / 100)) - Math.round(amount * 0.10)))}</span>
+                        <span className="text-[9px] text-blue-700 block">Academy Fund</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-1 flex justify-end">
                   <button
                     type="submit"
                     className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:from-emerald-700 hover:to-teal-700 active:scale-95 transition-all"
                   >
-                    <span>Payment Jama Karein (+50% Teacher Share)</span>
+                    <span>Payment Jama Karein (50% Teacher + 10% Mgmt + 40% Office)</span>
                   </button>
                 </div>
               </form>
