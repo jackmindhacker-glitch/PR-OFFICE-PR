@@ -76,6 +76,9 @@ export interface TeacherPayout {
   paymentMethod: PaymentMethod;
   referenceNo?: string;
   remarks?: string;
+  payoutCycle?: '15th' | '30th' | 'custom';
+  cyclePeriod?: string; // e.g., "1-15 Oct (Due 30th)" or "16-31 Oct (Due 15th)"
+  targetPayoutDate?: string; // e.g., "2026-10-30" or "2026-11-15"
 }
 
 export interface AcademySettings {

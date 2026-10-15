@@ -70,8 +70,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'teachers' as NavTab,
-      label: 'Teacher Salary (50%)',
-      sublabel: 'Auto 50% Share & Hisaab',
+      label: 'Teacher Salary (15 & 30 Tarikh)',
+      sublabel: 'Auto 15 & 30 Tarikh Payout Schedule',
       icon: Wallet,
       highlight: true,
     },

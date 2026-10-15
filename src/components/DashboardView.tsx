@@ -16,7 +16,12 @@ import {
   Receipt,
 } from 'lucide-react';
 import { Student, Course, PaymentRecord, Teacher, TeacherPayout } from '../types/academy';
-import { calculateTeacherSalaries, formatCurrency, formatDate } from '../utils/calculations';
+import {
+  calculateTeacherSalaries,
+  calculateBiMonthlySalarySchedule,
+  formatCurrency,
+  formatDate,
+} from '../utils/calculations';
 import { NavTab } from './Navbar';
 
 interface DashboardViewProps {
@@ -45,6 +50,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onViewReceipt,
 }) => {
   const summaries = calculateTeacherSalaries(teachers, courses, students, payments, payouts);
+  const bimonthlySchedule = calculateBiMonthlySalarySchedule(teachers, courses, students, payments, payouts);
 
   const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalPendingDues = students.reduce(
@@ -198,6 +204,56 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* 15 & 30 TARIKH SALARY PAYOUT SCHEDULE ALERT BANNER */}
+      <div className="rounded-2xl border-2 border-purple-200 bg-gradient-to-r from-purple-50 via-white to-amber-50 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-purple-600 animate-pulse" />
+              <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+                Automatic Salary Payout Schedule (15 & 30 Tarikh)
+              </span>
+              <span className="rounded-full bg-purple-200/80 px-2 py-0.2 text-[10px] font-bold text-purple-900">
+                Rule Active
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 max-w-xl">
+              1 se 15 tarikh tak aane wali fees ➔ <strong className="text-amber-900">30 tarikh ko</strong>, aur 16 se 31 tarikh tak aane wali fees ➔ <strong className="text-purple-900">agli 15 tarikh ko</strong> teacher ko di jayegi.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 30th due pill */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2">
+              <span className="text-[10px] font-bold uppercase text-amber-800 block">
+                Agli 30 Tarikh ({bimonthlySchedule.next30thDateLabel})
+              </span>
+              <span className="text-base font-black text-amber-950">
+                {formatCurrency(bimonthlySchedule.next30thTotalDue)}
+              </span>
+            </div>
+
+            {/* 15th due pill */}
+            <div className="rounded-xl border border-purple-200 bg-purple-50 px-3.5 py-2">
+              <span className="text-[10px] font-bold uppercase text-purple-800 block">
+                Agli 15 Tarikh ({bimonthlySchedule.next15thDateLabel})
+              </span>
+              <span className="text-base font-black text-purple-950">
+                {formatCurrency(bimonthlySchedule.next15thTotalDue)}
+              </span>
+            </div>
+
+            <button
+              onClick={() => onNavigate('teachers')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white hover:bg-purple-700 shadow-xs transition-all active:scale-95"
+            >
+              <span>Pura Schedule Dekhein</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Two Column Layout: Pending Dues (WhatsApp quick action) & Teacher 50% Overview */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left: Pending Fees & WhatsApp Reminders (7 cols) */}
@@ -330,17 +386,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Teachers & 50% Share Status (5 cols) */}
+        {/* Right: Teachers & 15-30 Tarikh Schedule Status (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-              Teachers 50% Auto Share Status
+              Teachers 15 & 30 Tarikh Payout Status
             </h2>
             <button
               onClick={() => onNavigate('teachers')}
-              className="text-xs font-bold text-amber-600 hover:text-amber-700"
+              className="text-xs font-bold text-purple-700 hover:text-purple-800"
             >
-              Vetan Hisaab →
+              Pura Schedule →
             </button>
           </div>
 
@@ -349,7 +405,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Wallet className="mx-auto h-8 w-8 text-slate-300" />
               <p className="mt-2 text-xs font-bold text-slate-700">Koi teacher add nahi hua hai</p>
               <p className="mt-1 text-[11px] text-slate-400">
-                Teacher add karein taaki unka 50% salary share auto-calculate ho sake.
+                Teacher add karein taaki unki 15 aur 30 tarikh ki automatic salary calculate ho sake.
               </p>
               <button
                 onClick={() => onNavigate('teachers')}
@@ -361,65 +417,72 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {summaries.map((summary) => (
-                <div
-                  key={summary.teacher.id}
-                  onClick={() => onNavigate('teachers')}
-                  className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${summary.teacher.avatarColor} text-white font-bold text-xs`}
-                      >
-                        {summary.teacher.name.charAt(0)}
+              {summaries.map((summary) => {
+                const sched = bimonthlySchedule.teacherSchedules.find((s) => s.teacher.id === summary.teacher.id);
+
+                return (
+                  <div
+                    key={summary.teacher.id}
+                    onClick={() => onNavigate('teachers')}
+                    className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:border-purple-400 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${summary.teacher.avatarColor} text-white font-bold text-xs`}
+                        >
+                          {summary.teacher.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900 text-xs sm:text-sm">
+                            {summary.teacher.name}
+                          </div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <span>{summary.teacher.specialty}</span>
+                            {summary.teacher.phone && (
+                              <span className="font-mono text-purple-700 font-medium">
+                                • {summary.teacher.phone}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-bold text-slate-900 text-xs sm:text-sm">
-                          {summary.teacher.name}
-                        </div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                          <span>{summary.teacher.specialty}</span>
-                          {summary.teacher.phone && (
-                            <span className="font-mono text-purple-700 font-medium">
-                              • {summary.teacher.phone}
-                            </span>
-                          )}
-                        </div>
+
+                      <span className="rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 border border-purple-200">
+                        {summary.teacher.sharePercentage || 50}% Share
+                      </span>
+                    </div>
+
+                    {/* Bi-Monthly 30th & 15th amounts preview */}
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs">
+                      <div className="rounded-xl bg-amber-50/80 p-2 border border-amber-200">
+                        <span className="text-[10px] text-amber-900 uppercase font-bold block">
+                          30 Tarikh ko Dena
+                        </span>
+                        <span className="font-black text-amber-950 text-sm">
+                          {formatCurrency(sched?.amountDue30th || 0)}
+                        </span>
+                      </div>
+
+                      <div className="rounded-xl bg-purple-50/80 p-2 border border-purple-200">
+                        <span className="text-[10px] text-purple-900 uppercase font-bold block">
+                          Agli 15 Tarikh ko Dena
+                        </span>
+                        <span className="font-black text-purple-950 text-sm">
+                          {formatCurrency(sched?.amountDue15th || 0)}
+                        </span>
                       </div>
                     </div>
 
-                    <span className="rounded-md bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 border border-purple-200">
-                      {summary.teacher.sharePercentage || 50}% Share
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-2 text-center text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                        Students
-                      </span>
-                      <span className="font-bold text-slate-800">{summary.studentsCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                        Teacher Share
-                      </span>
-                      <span className="font-bold text-emerald-700">
-                        {formatCurrency(summary.totalCalculatedShare)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-medium block">
-                        Payable
-                      </span>
-                      <span className="font-black text-amber-700">
-                        {formatCurrency(summary.balancePayable)}
+                    <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                      <span>{summary.studentsCount} Students Enrolled</span>
+                      <span className="font-bold text-purple-700 group-hover:underline">
+                        Schedule Kholein →
                       </span>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
